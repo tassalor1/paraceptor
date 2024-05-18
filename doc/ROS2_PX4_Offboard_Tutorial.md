@@ -19,7 +19,7 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
 
 ```
 cd ~
-git clone https://github.com/Jaeyoung-Lim/px4-offboard.git
+git clone [https://github.com/tassalor1]
 ```
 
 ### Install PX4 msg
