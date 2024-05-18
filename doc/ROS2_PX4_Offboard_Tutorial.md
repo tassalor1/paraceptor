@@ -19,6 +19,7 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
 
 ```
 cd ~
+mkdir paraceptor
 git clone https://github.com/tassalor1/paraceptor.git
 ```
 
@@ -174,7 +175,7 @@ In the window you have designated for the `px4-offboard` example:
 
 
 ```
-cd ~/px4-offboard
+cd ~/paraceptor
 source ../px4_ros_com_ws/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
