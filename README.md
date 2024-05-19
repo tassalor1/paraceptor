@@ -40,7 +40,7 @@ Click Takeoff from left hand menu, then slide to confirm
 
 ## Terminal 4 
 ```
-cd ~/px4-offboard
+cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
@@ -106,7 +106,7 @@ Click Takeoff from left hand menu, then slide to confirm
 
 ## Terminal 5
 ```
-cd ~/px4-offboard
+cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
