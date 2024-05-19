@@ -19,7 +19,8 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
 
 ```
 cd ~
-git clone https://github.com/Jaeyoung-Lim/px4-offboard.git
+mkdir paraceptor
+git clone https://github.com/tassalor1/paraceptor.git
 ```
 
 ### Install PX4 msg
@@ -174,8 +175,8 @@ In the window you have designated for the `px4-offboard` example:
 
 
 ```
-cd ~/px4-offboard
-source ../px4_ros_com_ws/install/setup.bash
+cd ~/paraceptor
+source ../px4_ros_com_ws/src/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 ros2 topic list
@@ -268,7 +269,7 @@ Now that we verfied the DDS-ROS subscription communication link, we can start th
 CTRL-C to stop the topic echo and then:
 
 ```
-source ../px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 ```
 

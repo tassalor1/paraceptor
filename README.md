@@ -14,7 +14,7 @@ Refer to doc for install
 ## Terminal 1 
 ```
 cd ~/microros_ws
-source ../px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
@@ -40,12 +40,12 @@ Click Takeoff from left hand menu, then slide to confirm
 
 ## Terminal 4 
 ```
-cd ~/px4-offboard
+cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 ros2 topic list
-source ../px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 ```
 
@@ -71,7 +71,7 @@ ros2 launch px4_offboard offboard_position_control.launch.py
 ## Terminal 1 
 ```
 cd ~/microros_ws
-source ../px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
@@ -106,11 +106,11 @@ Click Takeoff from left hand menu, then slide to confirm
 
 ## Terminal 5
 ```
-cd ~/px4-offboard
+cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-source ../px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
