@@ -33,5 +33,11 @@ def generate_launch_description():
             executable='rviz2',
             name='rviz2',
             arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
+        ),
+        Node(
+            package='px4_offboard',
+            namespace='',
+            executable='camera_publisher',
+            name='camera_publisher'
         )
     ])

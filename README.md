@@ -84,7 +84,7 @@ cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 1
+PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=standard_vtol ./build/px4_sitl_default/bin/px4 -i 1
 ```
 
 ## Terminal 3 Drone 2 Inteceptor
@@ -93,7 +93,7 @@ cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=gz_x500 ./build/px4_sitl_default/bin/px4 -i 2
+PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=px4vision ./build/px4_sitl_default/bin/px4 -i 2
 ```
 
 ## Terminal 4 from home directory 

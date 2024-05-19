@@ -29,6 +29,7 @@ setup(
                 'recon_drone_path = px4_offboard.recon_drone_path:main',
                 'offboard_control = px4_offboard.offboard_control:main',
                 'visualizer = px4_offboard.visualizer:main',
+                'camera_publisher = camera_publisher:main'
         ],
     },
 )
