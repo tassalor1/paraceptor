@@ -27,7 +27,7 @@ cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-make px4_sitl gz_x500
+make px4_sitl px4vision
 ```
 
 ## Terminal 3 from home directory 
