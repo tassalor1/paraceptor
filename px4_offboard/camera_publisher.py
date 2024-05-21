@@ -5,27 +5,30 @@ from sensor_msgs.msg import Image
 from cv_bridge import CvBridge
 import cv2
 
-class CameraPublisher(Node):
+class ImageSubscriber(Node):
 
     def __init__(self):
-        super().__init__('camera_publisher')
-        self.publisher_ = self.create_publisher(Image, '/custom_camera/image_raw', 10)
-        self.timer = self.create_timer(0.1, self.timer_callback)
-        self.cap = cv2.VideoCapture(0) 
+        super().__init__('image_subscriber')
+        self.subscription = self.create_subscription(
+            Image,
+            '/camera/image_raw',
+            self.listener_callback,
+            10)
+        self.subscription
         self.bridge = CvBridge()
 
-    def timer_callback(self):
-        ret, frame = self.cap.read()
-        if ret:
-            msg = self.bridge.cv2_to_imgmsg(frame, "bgr8")
-            self.publisher_.publish(msg)
+    def listener_callback(self, msg):
+        cv_image = self.bridge.imgmsg_to_cv2(msg, "bgr8")
+        cv2.imshow("Camera View", cv_image)
+        cv2.waitKey(1)
 
 def main(args=None):
     rclpy.init(args=args)
-    camera_publisher = CameraPublisher()
-    rclpy.spin(camera_publisher)
-    camera_publisher.destroy_node()
+    image_subscriber = ImageSubscriber()
+    rclpy.spin(image_subscriber)
+    image_subscriber.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+
