@@ -42,7 +42,6 @@ class OffboardControl(Node):
         self.timer = self.create_timer(timer_period, self.cmdloop_callback) #calls the cmdloop for the specified timer_period
         self.dt = timer_period
 
-        # Initialize target coordinates
         self.recon_x = 0.0
         self.recon_y = 0.0
         self.recon_z = 0.0
@@ -91,12 +90,12 @@ class OffboardControl(Node):
             target_y = self.recon_y
             target_z = self.recon_z
 
-            # Calculate the direction vector towards the target
+            # calc the direction vector towards the target
             direction_x = target_x - self.current_x
             direction_y = target_y - self.current_y
             direction_z = target_z - self.current_z
 
-            # Normalize the direction vector to get a unit vector
+            # norm the direction vector to get a unit vector
             norm = np.sqrt(direction_x**2 + direction_y**2 + direction_z**2)
             if norm > 0:
                 direction_x /= norm
@@ -110,10 +109,11 @@ class OffboardControl(Node):
                                        self.current_z + direction_z * self.dt * 10]
             self.publisher_trajectory.publish(trajectory_msg)
 
+            speed_factor = 100
             # Update current position for next iteration 
-            self.current_x += direction_x * self.dt * 10
-            self.current_y += direction_y * self.dt * 10
-            self.current_z += direction_z * self.dt * 10
+            self.current_x += direction_x * self.dt * speed_factor
+            self.current_y += direction_y * self.dt * speed_factor
+            self.current_z += direction_z * self.dt * speed_factor
 
 def main(args=None):
     rclpy.init(args=args)

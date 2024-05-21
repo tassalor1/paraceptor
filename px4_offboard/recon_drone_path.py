@@ -39,8 +39,7 @@ class ReconControl(Node):
         self.publisher_coords = self.create_publisher(Point, f'/{namespace}/fmu/out/recon_coords', qos_profile)
 
         timer_period = 0.02  # seconds
-        self.timer = self.
-        (timer_period, self.cmdloop_callback)
+        self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
 
         # Circle parameters

@@ -5,7 +5,6 @@ from launch_ros.actions import Node
 from ament_index_python.packages import get_package_share_directory
 import os
 
-
 def generate_launch_description():
     package_dir = get_package_share_directory('px4_offboard')
     return LaunchDescription([
@@ -34,10 +33,26 @@ def generate_launch_description():
             name='rviz2',
             arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
         ),
-        # Node(
-        #     package='px4_offboard',
-        #     namespace='',
-        #     executable='camera_publisher',
-        #     name='camera_publisher'
-        # )
+        Node(
+            package='gazebo_ros',
+            executable='spawn_entity.py',
+            arguments=['-entity', 'typhoon_h480', '-file', os.path.join(package_dir, 'models/typhoon_h480.sdf')],
+            output='screen'
+        ),
+        Node(
+            package='gazebo_ros',
+            executable='gzserver',
+            output='screen'
+        ),
+        Node(
+            package='gazebo_ros',
+            executable='gzclient',
+            output='screen'
+        ),
+        Node(
+            package='px4_offboard',
+            namespace='',
+            executable='image_subscriber',
+            name='image_subscriber'
+        )
     ])
