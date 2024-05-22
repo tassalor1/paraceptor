@@ -27,17 +27,21 @@ export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
+## Terminal 2 Bridge from home directory 
+```
+ros2 run ros_gz_image image_bridge /camera
+```
 
-## Terminal 2 
+## Terminal 3
 ```
 cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-make px4_sitl px4vision
+PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,5" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
 ```
 
-## Terminal 3 from home directory 
+## Terminal 4 from home directory 
 ```
 source install/setup.bash
 chmod +x ./QGroundControl.AppImage
@@ -45,26 +49,20 @@ chmod +x ./QGroundControl.AppImage
 ```
 Click Takeoff from left hand menu, then slide to confirm
 
-## Terminal 4 
+## Terminal 5
 ```
 cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-ros2 topic list
 source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
-```
-
-```
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
 
 Now head back to QGroundControl and enable offboard control.  
 Click Takeoff from left hand menu, then slide to confirm
 Click the current mode "HOLD" in upper left, then in the menu, select "Offboard":
-
-After a 1-2 sec pause, the demo should take control and you should see the 3d indicator in Rviz drawing circles.
 
 
 ## After script changes #####################
@@ -84,8 +82,12 @@ export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
+## Terminal 2 Bridge from home directory 
+```
+ros2 run ros_gz_image image_bridge /camera
+```
 
-## Terminal 2 Drone 1 Recon
+## Terminal 3 Drone 1 Recon
 ```
 cd ~/PX4-Autopilot
 source install/setup.bash
@@ -94,16 +96,16 @@ export PYTHONOPTIMIZE=1
 PX4_SYS_AUTOSTART=4001 PX4_SIM_MODEL=standard_vtol ./build/px4_sitl_default/bin/px4 -i 1
 ```
 
-## Terminal 3 Drone 2 Inteceptor
+## Terminal 5 Drone 2 Inteceptor
 ```
 cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
+PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,5" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
 ```
 
-## Terminal 4 from home directory 
+## Terminal 5 from home directory 
 ```
 source install/setup.bash
 chmod +x ./QGroundControl.AppImage
@@ -111,11 +113,6 @@ chmod +x ./QGroundControl.AppImage
 ```
 Click Takeoff from left hand menu, then slide to confirm
 
-
-## Terminal 5 Bridge from home directory 
-```
-ros2 run ros_gz_image image_bridge /camera
-```
 
 ## Terminal 6
 ```
