@@ -9,7 +9,6 @@ build/paraceptor/px4_offboard.egg-info/entry_points.txt
 build/paraceptor/px4_offboard.egg-info/requires.txt
 build/paraceptor/px4_offboard.egg-info/top_level.txt
 build/paraceptor/px4_offboard.egg-info/zip-safe
-launch/launch_gazebo.launch.py
 launch/offboard_hardware_position_control.launch.py
 launch/offboard_position_control.launch.py
 launch/visualize.launch.py
@@ -17,6 +16,7 @@ px4_offboard/__init__.py
 px4_offboard/image_subscriber.py
 px4_offboard/offboard_control.py
 px4_offboard/recon_drone_path.py
+px4_offboard/uav_camera_det.py
 px4_offboard/velocity_control.py
 px4_offboard/visualizer.py
 resource/px4_offboard

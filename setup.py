@@ -29,7 +29,7 @@ setup(
                 'recon_drone_path = px4_offboard.recon_drone_path:main',
                 'offboard_control = px4_offboard.offboard_control:main',
                 'visualizer = px4_offboard.visualizer:main',
-                'image_subscriber = image_subscriber:main'
+                'uav_camera_det = px4_offboard.uav_camera_det:main'
         ],
     },
 )

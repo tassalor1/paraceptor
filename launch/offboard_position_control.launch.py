@@ -34,25 +34,11 @@ def generate_launch_description():
             arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
         ),
         Node(
-            package='gazebo_ros',
-            executable='spawn_entity.py',
-            arguments=['-entity', 'typhoon_h480', '-file', os.path.join(package_dir, 'models/typhoon_h480.sdf')],
-            output='screen'
-        ),
-        Node(
-            package='gazebo_ros',
-            executable='gzserver',
-            output='screen'
-        ),
-        Node(
-            package='gazebo_ros',
-            executable='gzclient',
-            output='screen'
-        ),
-        Node(
             package='px4_offboard',
             namespace='',
-            executable='image_subscriber',
-            name='image_subscriber'
+            executable='uav_camera_det',
+            name='uav_camera_det',
+            output='screen',
+            parameters=[{'use_sim_time': True}]
         )
     ])

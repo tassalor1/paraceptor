@@ -93,7 +93,7 @@ cd ~/PX4-Autopilot
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=px4vision ./build/px4_sitl_default/bin/px4 -i 2
+PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,1" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
 ```
 
 ## Terminal 4 from home directory 
@@ -104,7 +104,13 @@ chmod +x ./QGroundControl.AppImage
 ```
 Click Takeoff from left hand menu, then slide to confirm
 
-## Terminal 5
+
+## Terminal 5 Bridge from home directory 
+```
+ros2 run ros_gz_image image_bridge /camera
+```
+
+## Terminal 6
 ```
 cd ~/paraceptor
 source install/setup.bash
