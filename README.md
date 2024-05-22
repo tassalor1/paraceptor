@@ -10,6 +10,13 @@
 
 Refer to doc for install
 
+
+## For gazebo image detection world ##
+ * Go to "gazebo_files" in the paraceptor repo
+ * Take all files from models and input these into this folder "/PX4-Autopilot/Tools/simulation/gz/models"
+ * Take all files from worlds, got to "/PX4-Autopilot/Tools/simulation/gz"
+ * Replace defualt.sdf in this location with the one you got from paraceptor
+ 
 ## RUN SINGLE DRONE
 ## Terminal 1 
 ```
