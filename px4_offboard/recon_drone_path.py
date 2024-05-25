@@ -106,6 +106,8 @@ class ReconControl(Node):
             if self.theta >= 2 * np.pi:
                 self.theta -= 2 * np.pi
 
+        self.get_logger().info(f"RECON: x={self.current_x}, y={self.current_y}, z={self.current_z}")
+
 def main(args=None):
     rclpy.init(args=args)
     namespace = 'px4_1'

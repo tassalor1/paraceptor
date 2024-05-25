@@ -1,4 +1,0 @@
-[console_scripts]
-offboard_control = px4_offboard.offboard_control:main
-recon_drone_path = px4_offboard.recon_drone_path:main
-visualizer = px4_offboard.visualizer:main

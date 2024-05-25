@@ -48,16 +48,16 @@ class BaseStation:
         return np.array([xyz[1], xyz[0], -xyz[2]])
     
     def calculate_mode(self):
-        if self.current_pos_paraceptor[2] >= 0.99 * self.current_pos_enemy[2]:
+        if self.current_pos_paraceptor[2] >= 0.90 * self.current_pos_enemy[2]:
             return 2
         else:
-            return 1
+            return 2
 
     def setup_PID(self):
         # PID gains for the paraceptor
-        self.pid_x = PID(20000,20,43.2, setpoint=0.5) # Detonation needs to trigger at 0.5m near the target
-        self.pid_y = PID(100,0,316, setpoint=0.5)
-        self.pid_z = PID(4000,1,100, setpoint=0.5)    
+        self.pid_x = PID(4,0,0, setpoint=0.5) # Detonation needs to trigger at 0.5m near the target
+        self.pid_y = PID(1,0,0, setpoint=0.5)
+        self.pid_z = PID(1,0,0, setpoint=0.5)    
 
     def get_error_x(self):
         actual_distance_x = abs(self.current_pos_enemy[0] - self.current_pos_paraceptor[0])
@@ -73,10 +73,11 @@ class BaseStation:
 
 
     def calculate_velocity_vector(self):
-        mode = self.calculate_mode()
-        if mode == 1:
-            return np.array([0, 0, self.v_max_paraceptor])
-        elif mode == 2:
+        self.mode = self.calculate_mode()
+
+        if self.mode == 1:
+            return self.xyz_to_ned(np.array([0, 0, self.v_max_paraceptor]))
+        elif self.mode == 2:
             actual_distance = np.linalg.norm(self.current_pos_enemy - self.current_pos_paraceptor)
 
             error_x = self.get_error_x()
@@ -99,7 +100,7 @@ class BaseStation:
             corrected_velocity_y = np.clip(corrected_velocity_y, -self.v_max_paraceptor, self.v_max_paraceptor)
             corrected_velocity_z = np.clip(corrected_velocity_z, -self.v_max_paraceptor, self.v_max_paraceptor)
 
-            return np.array([corrected_velocity_x, corrected_velocity_y, corrected_velocity_z])
+            return self.xyz_to_ned(np.array([corrected_velocity_x, corrected_velocity_y, corrected_velocity_z]))
 
 class OffboardControl(Node):
     def __init__(self, namespace):
@@ -128,19 +129,19 @@ class OffboardControl(Node):
         )
         
         # Subscribe to my own position
-        self.current_position_sub = self.create_subscription(
-            VehicleLocalPosition,  # Assuming this is the message type
-            f'/{namespace}/fmu/out/vehicle_local_position',
-            self.update_current_position,
-            10  # QoS setting
-        )        
+        # self.current_position_sub = self.create_subscription(
+        #     VehicleLocalPosition,  # Assuming this is the message type
+        #     f'/{namespace}/fmu/out/vehicle_local_position',
+        #     self.update_current_position,
+        #     10  # QoS setting
+        # )        
 
         self.vehicle_command_publisher_ = self.create_publisher(VehicleCommand, f'/{namespace}/fmu/in/vehicle_command', 10)
         self.publisher_offboard_mode = self.create_publisher(OffboardControlMode, f'/{namespace}/fmu/in/offboard_control_mode', qos_profile)
         self.publisher_trajectory = self.create_publisher(TrajectorySetpoint, f'/{namespace}/fmu/in/trajectory_setpoint', qos_profile)
 
         timer_period = 0.02 # seconds
-        self.timer = self.create_timer(timer_period, self.cmdLoop_baseStation_callback) #calls the cmdloop for the specified timer_period
+        self.timer = self.create_timer(timer_period, self.cmdloop_callback) #calls the cmdloop for the specified timer_period
         self.dt = timer_period
 
         self.recon_x = 0.0
@@ -150,13 +151,15 @@ class OffboardControl(Node):
         self.current_x = 0.0
         self.current_y = 0.0
         self.current_z = 0.0
-        
+
+        self.max_velocity = 40.0
+
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
 
         self.arming_timer = self.create_timer(5.0, self.arm_vehicle) # will activate function after 5 secs
 
-        self.base_station = BaseStation([0,0,0], [0,0,0], 10.0)
+        self.base_station = BaseStation([0,0,0], [0,0,0], self.max_velocity)
 
     def arm_vehicle(self):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
@@ -179,11 +182,11 @@ class OffboardControl(Node):
         self.recon_z = msg.z
         self.base_station.update_enemy_position([self.recon_x, self.recon_y, self.recon_z])
 
-    def update_current_position(self, msg):
-        self.current_x = msg.x
-        self.current_y = msg.y
-        self.current_z = msg.z
-        self.base_station.update_paraceptor_position([self.current_x, self.current_y, self.current_z])
+    # def update_current_position(self, msg):
+    #     self.current_x = msg.x
+    #     self.current_y = msg.y
+    #     self.current_z = msg.z
+    #     self.base_station.update_paraceptor_position([self.current_x, self.current_y, self.current_z])
 
 
     def cmdloop_callback(self):
@@ -214,43 +217,54 @@ class OffboardControl(Node):
 
             # Publish TrajectorySetpoint message
             trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.position = [self.current_x + direction_x * self.dt * 10,
-                                       self.current_y + direction_y * self.dt * 10,
-                                       self.current_z + direction_z * self.dt * 10]
+            trajectory_msg.position = [self.current_x + direction_x * self.dt * self.max_velocity,
+                                       self.current_y + direction_y * self.dt * self.max_velocity,
+                                       self.current_z + direction_z * self.dt * self.max_velocity]
             self.publisher_trajectory.publish(trajectory_msg)
 
             # Update current position for next iteration 
-            self.current_x += direction_x * self.dt * 10
-            self.current_y += direction_y * self.dt * 10
-            self.current_z += direction_z * self.dt * 10
+            self.current_x += direction_x * self.dt * self.max_velocity
+            self.current_y += direction_y * self.dt * self.max_velocity
+            self.current_z += direction_z * self.dt * self.max_velocity
 
     def cmdLoop_baseStation_callback(self):
 
         # Publish offboard control modes
         offboard_msg = OffboardControlMode()
         offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-        offboard_msg.position = True
-        offboard_msg.velocity = False
+        offboard_msg.position = False
+        offboard_msg.velocity = True
         offboard_msg.acceleration = False
         self.publisher_offboard_mode.publish(offboard_msg)
+
+        # self.get_logger().info('Came here')
 
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             # Calculate the velocity vector
             velocity_vector = self.base_station.calculate_velocity_vector()
-
+            # self.get_logger().info(f'Velocity vector: {velocity_vector}')
+            # self.get_logger().info(str(self.base_station.mode))
             # Publish TrajectorySetpoint message
             trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.position = [self.current_x + velocity_vector[0] * self.dt,
-                                       self.current_y + velocity_vector[1] * self.dt,
+
+            # direction = velocity_vector / np.linalg.norm(velocity_vector)
+
+            trajectory_msg.position = [self.current_x + velocity_vector[0] * self.dt, 
+                                       self.current_y + velocity_vector[1] * self.dt, 
                                        self.current_z + velocity_vector[2] * self.dt]
+                        
+            # trajectory_msg.velocity = [velocity_vector[0],velocity_vector[1],velocity_vector[2]]
             
             self.publisher_trajectory.publish(trajectory_msg)
 
             # Update current position for next iteration 
-            # self.current_x += velocity_vector[0] * self.dt
-            # self.current_y += velocity_vector[1] * self.dt
-            # self.current_z += velocity_vector[2] * self.dt
+            self.current_x += velocity_vector[0] * self.dt
+            self.current_y += velocity_vector[1] * self.dt
+            self.current_z += velocity_vector[2] * self.dt
     
+            # self.base_station.update_paraceptor_position([self.current_x, self.current_y, self.current_z])
+
+            self.get_logger().info(f'Paraceptor velocity: {velocity_vector[0]}, {velocity_vector[1]}, {velocity_vector[2]}')
 
 def main(args=None):
     rclpy.init(args=args)
