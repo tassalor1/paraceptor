@@ -67,8 +67,8 @@ class CVInteceptor(Node):
 
         # Circle parameters
         self.radius = 6.0  # meters
-        self.linear_velocity = 0.7 # meters per second
-        self.altitude = 5.0  # Altitude in meters
+        self.linear_velocity = 2.7 # meters per second
+        self.altitude = 4.0  # Altitude in meters
         self.angular_velocity = self.linear_velocity / self.radius
         self.theta = 0.0  # Angle for circular motion
         

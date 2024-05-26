@@ -61,6 +61,10 @@ Click Takeoff from left hand menu, then slide to confirm
 
 ## Terminal 6 
 ```
+cd ~/paraceptor
+source install/setup.bash
+export ROS_DOMAIN_ID=0
+export PYTHONOPTIMIZE=1
 python px4_offboard/uav_camera_det.py
 ```
 
