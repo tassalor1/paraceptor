@@ -41,7 +41,7 @@ class ImageSubscriber(Node):
     current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
     image = current_frame
     # Object Detection
-    results = model.predict(image, classes=['Drone'])
+    results = model.predict(image, classes=[0,2])
     img = results[0].plot()
 
     cv2.imshow('Detected Frame', img)    

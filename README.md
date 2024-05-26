@@ -17,60 +17,6 @@ Refer to doc for install
  * Take all files from worlds, go to "/PX4-Autopilot/Tools/simulation/gz/worlds"
  * Replace defualt.sdf in this location with the one you got from paraceptor
 
-## RUN SINGLE DRONE
-## Terminal 1 
-```
-cd ~/microros_ws
-source ../px4_ros_com_ws/src/install/setup.bash
-source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
-```
-## Terminal 2 Bridge from home directory 
-```
-ros2 run ros_gz_image image_bridge /camera
-```
-
-## Terminal 3
-```
-cd ~/PX4-Autopilot
-source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,5" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
-```
-
-## Terminal 4 from home directory 
-```
-source install/setup.bash
-chmod +x ./QGroundControl.AppImage
-./QGroundControl.AppImage 
-```
-Click Takeoff from left hand menu, then slide to confirm
-
-## Terminal 5
-```
-cd ~/paraceptor
-source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-source ../px4_ros_com_ws/src/install/setup.bash
-source install/setup.bash
-ros2 launch px4_offboard offboard_position_control.launch.py
-```
-
-Now head back to QGroundControl and enable offboard control.  
-Click Takeoff from left hand menu, then slide to confirm
-Click the current mode "HOLD" in upper left, then in the menu, select "Offboard":
-
-
-## After script changes #####################
-```
-colcon build --packages-select px4_offboard
-source install/setup.bash
-ros2 launch px4_offboard offboard_position_control.launch.py
-```
 
 ## RUN MULTI DRONE
 ## Terminal 1 
@@ -113,8 +59,12 @@ chmod +x ./QGroundControl.AppImage
 ```
 Click Takeoff from left hand menu, then slide to confirm
 
+## Terminal 6 
+```
+python px4_offboard/uav_camera_det.py
+```
 
-## Terminal 6
+## Terminal 7
 ```
 cd ~/paraceptor
 source install/setup.bash
@@ -125,6 +75,12 @@ source install/setup.bash
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
 
+## After script changes #####################
+```
+colcon build --packages-select px4_offboard
+source install/setup.bash
+ros2 launch px4_offboard offboard_position_control.launch.py
+```
 
 
 ### Hardware

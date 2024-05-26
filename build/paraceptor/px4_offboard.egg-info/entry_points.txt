@@ -1,5 +1,7 @@
 [console_scripts]
-offboard_control = px4_offboard.offboard_control:main
+cv_inteceptor = px4_offboard.cv_inteceptor:main
+cv_recon = px4_offboard.cv_recon:main
+inteceptor_path = px4_offboard.inteceptor_path:main
 recon_drone_path = px4_offboard.recon_drone_path:main
 uav_camera_det = px4_offboard.uav_camera_det:main
 visualizer = px4_offboard.visualizer:main

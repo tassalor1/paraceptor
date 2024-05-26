@@ -17,7 +17,7 @@ def generate_launch_description():
         Node(
             package='px4_offboard',
             namespace='px4_2',
-            executable='offboard_control',
+            executable='inteceptor_path',
             name='inteceptor'
         ),
         Node(

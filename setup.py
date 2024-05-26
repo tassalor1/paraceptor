@@ -27,9 +27,11 @@ setup(
     entry_points={
         'console_scripts': [
                 'recon_drone_path = px4_offboard.recon_drone_path:main',
-                'offboard_control = px4_offboard.offboard_control:main',
+                'inteceptor_path = px4_offboard.inteceptor_path:main',
                 'visualizer = px4_offboard.visualizer:main',
-                'uav_camera_det = px4_offboard.uav_camera_det:main'
+                'uav_camera_det = px4_offboard.uav_camera_det:main',
+                'cv_inteceptor = px4_offboard.cv_inteceptor:main',
+                'cv_recon = px4_offboard.cv_recon:main'
         ],
     },
 )

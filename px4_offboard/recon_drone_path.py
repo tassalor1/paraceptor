@@ -33,10 +33,25 @@ class ReconControl(Node):
             qos_profile
         )
 
-        self.vehicle_command_publisher_ = self.create_publisher(VehicleCommand, f'/{namespace}/fmu/in/vehicle_command', 10)
-        self.publisher_offboard_mode = self.create_publisher(OffboardControlMode, f'/{namespace}/fmu/in/offboard_control_mode', qos_profile)
-        self.publisher_trajectory = self.create_publisher(TrajectorySetpoint, f'/{namespace}/fmu/in/trajectory_setpoint', qos_profile)
-        self.publisher_coords = self.create_publisher(Point, f'/{namespace}/fmu/out/recon_coords', qos_profile)
+        self.vehicle_command_publisher_ = self.create_publisher(
+            VehicleCommand, 
+            f'/{namespace}/fmu/in/vehicle_command', 
+            10)
+        
+        self.publisher_offboard_mode = self.create_publisher(
+            OffboardControlMode, 
+            f'/{namespace}/fmu/in/offboard_control_mode', 
+            qos_profile)
+        
+        self.publisher_trajectory = self.create_publisher(
+            TrajectorySetpoint, 
+            f'/{namespace}/fmu/in/trajectory_setpoint', 
+            qos_profile)
+        
+        self.publisher_coords = self.create_publisher(
+            Point, 
+            f'/{namespace}/fmu/out/recon_coords', 
+            qos_profile)
 
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
