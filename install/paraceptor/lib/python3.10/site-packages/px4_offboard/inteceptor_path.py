@@ -48,6 +48,7 @@ class InteceptorControl(Node):
             TrajectorySetpoint, 
             f'/{namespace}/fmu/in/trajectory_setpoint', 
             qos_profile)
+        
 
         timer_period = 0.02 # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback) #calls the cmdloop for the specified timer_period
@@ -85,7 +86,7 @@ class InteceptorControl(Node):
         self.recon_x = msg.x
         self.recon_y = msg.y
         self.recon_z = msg.z
-        
+    
 
     def cmdloop_callback(self):
         # Publish offboard control modes
@@ -123,6 +124,7 @@ class InteceptorControl(Node):
                                        self.current_z + direction_z * self.dt * 10]
             trajectory_msg.yaw = yaw
             self.publisher_trajectory.publish(trajectory_msg)
+            
 
             speed_factor = 100
             # Update current position for next iteration 

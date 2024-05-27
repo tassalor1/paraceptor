@@ -1,6 +1,11 @@
 import rclpy 
+from rclpy.qos import (QoSProfile, QoSReliabilityPolicy, 
+                       QoSHistoryPolicy, QoSDurabilityPolicy)
 from rclpy.node import Node 
+
 from sensor_msgs.msg import Image 
+from px4_msgs.msg import TrajectorySetpoint
+
 from cv_bridge import CvBridge 
 import cv2
 from ultralytics import YOLO 
@@ -9,22 +14,41 @@ import numpy as np
 
 model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
-
 class ImageSubscriber(Node):
     def __init__(self):
         super().__init__('image_subscriber')
+
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
+        )
         
         self.subscription = self.create_subscription(
             Image, 
             'camera', 
             self.listener_callback, 
             1)
-        self.subscription  # prevent unused variable warning
         
+        self.intecpetor_trajectory = self.create_subscription(
+            TrajectorySetpoint, 
+            '/px4_2/fmu/in/trajectory_setpoint', 
+            self.get_inteceptor_trajectory,
+            qos_profile)
+
+        self.current_yaw = 0.0
+
+        self.cvfont = cv2.FONT_HERSHEY_SIMPLEX 
+
         self.br = CvBridge()
 
+
+    def get_inteceptor_trajectory(self, msg):
+        ''' gets inteceptor trajectory from topic '''
+        self.current_yaw = msg.yaw
+       
     def listener_callback(self, data):
-        self.get_logger().info('Receiving video frame')
 
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
 
@@ -33,8 +57,9 @@ class ImageSubscriber(Node):
         height, width, _ = current_frame.shape
         mask = np.ones((height, width), dtype=np.uint8) * 255
 
-        propeller_mask_height = int(height * 0.15)  
-        propeller_mask_width = int(width * 0.17)
+        # size of the masks
+        propeller_mask_height = int(height * 0.20)  
+        propeller_mask_width = int(width * 0.20)
         vertical_offset = int(height * 0.10)
 
         # right propeller mask
@@ -48,16 +73,47 @@ class ImageSubscriber(Node):
         
         # make copy so we can put centroid in box
         img = np.copy(results.render()[0]) 
+
+        # Calculate the direction point relative to the center of the image
+        direction_length = 20  
+        direction_point_x = int(width / 2 + direction_length * np.cos(self.current_yaw))
+        direction_point_y = int(height / 2 - direction_length * np.sin(self.current_yaw))
+
+        # draw direction point
+        cv2.circle(img, (direction_point_x, direction_point_y), 5, (255, 0, 0), -1)  
+
+        drone_centroid_x, drone_centroid_y = None, None
+
         # finds centre and marks with red dot
         for bbox in results.xyxy[0].cpu().numpy():
             x_min, y_min, x_max, y_max, conf, cls = bbox
-            # Calculate the centroid
-            centroid_x = int((x_min + x_max) / 2)
-            centroid_y = int((y_min + y_max) / 2)
-            # draw the centroid
-            cv2.circle(img, (centroid_x, centroid_y), 5, (0, 0, 255), -1)
-           
+            # if boundig box is in within image
+            if 0 <= x_min < width and 0 <= x_max < width and 0 <= y_min < height and 0 <= y_max < height:
+                
+              # Calculate the recon drones centroid
+              centroid_x = int((x_min + x_max) / 2)
+              centroid_y = int((y_min + y_max) / 2)
 
+              drone_centroid_x = centroid_x
+              drone_centroid_y = centroid_y
+              # draw the centroid
+              cv2.circle(img, (centroid_x, centroid_y), 5, (0, 0, 255), -1)
+
+        # if drone centroid then cretae line
+        if drone_centroid_x is not None and drone_centroid_y is not None:
+           cv2.line(img, 
+                    (direction_point_x, direction_point_y), 
+                    (drone_centroid_x, drone_centroid_y), 
+                    (0, 255, 0), 2)
+
+           cv2.putText(img,  
+                'Recon Drone Detected',  
+                (50, 50),  
+                self.cvfont, 1,  
+                (0, 255, 255),  
+                2,  
+                cv2.LINE_4) 
+           
         cv2.imshow('Detected Frame', img)
         cv2.waitKey(1)
         
