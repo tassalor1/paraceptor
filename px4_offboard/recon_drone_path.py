@@ -58,9 +58,9 @@ class ReconControl(Node):
         self.dt = timer_period
 
         # Circle parameters
-        self.radius = 1000.0  # meters
-        self.linear_velocity = 30  # meters per second
-        self.altitude = 100.0  # Altitude in meters
+        self.radius = 500.0  # meters
+        self.linear_velocity = 15  # meters per second
+        self.altitude = 60.0  # Altitude in meters
         self.angular_velocity = self.linear_velocity / self.radius
         self.theta = 0.0  # Angle for circular motion
         

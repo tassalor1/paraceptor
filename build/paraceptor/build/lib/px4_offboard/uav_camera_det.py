@@ -5,41 +5,61 @@ from cv_bridge import CvBridge
 import cv2
 from ultralytics import YOLO 
 import torch
+import numpy as np 
 
 model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
 
 class ImageSubscriber(Node):
-  def __init__(self):
-    super().__init__('image_subscriber')
-      
-    # Create the subscriber. This subscriber will receive an Image
-    # from the video_frames topic. The queue size is 10 messages.
-    self.subscription = self.create_subscription(
-      Image, 
-      'camera', 
-      self.listener_callback, 
-      10)
-    self.subscription # prevent unused variable warning
-      
-    # convert between ROS and OpenCV images
-    self.br = CvBridge()
-   
-  def listener_callback(self, data):
-    """
-    Callback function
-    """
-    self.get_logger().info('Receiving video frame')
- 
-    # convert ros Image message to OpenCV image
-    current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-    image = current_frame
-    # Object Detection
-    results = model(image)
-    img = results.show()
+    def __init__(self):
+        super().__init__('image_subscriber')
+        
+        self.subscription = self.create_subscription(
+            Image, 
+            'camera', 
+            self.listener_callback, 
+            1)
+        self.subscription  # prevent unused variable warning
+        
+        self.br = CvBridge()
 
-    cv2.imshow('Detected Frame', img)    
-    cv2.waitKey(1)
+    def listener_callback(self, data):
+        self.get_logger().info('Receiving video frame')
+
+        current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
+
+        height, width, _ = current_frame.shape
+        mask = np.ones((height, width), dtype=np.uint8) * 255
+
+        propeller_mask_height = int(height * 0.13)  
+        propeller_mask_width = int(width * 0.16)
+        vertical_offset = int(height * 0.10)
+
+        # right propeller
+        mask[vertical_offset:vertical_offset + propeller_mask_height, -propeller_mask_width:] = 0
+        # left propeller
+        mask[vertical_offset:vertical_offset + propeller_mask_height, :propeller_mask_width] = 0
+
+        # Apply  mask
+        masked_image = cv2.bitwise_and(current_frame, current_frame, mask=mask)
+
+        results = model(masked_image)
+        
+        # make copy so we can put centroid in box
+        img = np.copy(results.render()[0]) 
+
+        for bbox in results.xyxy[0].cpu().numpy():
+            x_min, y_min, x_max, y_max, conf, cls = bbox
+            # Calculate the centroid
+            centroid_x = int((x_min + x_max) / 2)
+            centroid_y = int((y_min + y_max) / 2)
+            # Draw the centroid
+            cv2.circle(img, (centroid_x, centroid_y), 5, (0, 0, 255), -1)
+           
+
+        cv2.imshow('Detected Frame', img)
+        cv2.waitKey(1)
+        
   
 def main(args=None):
   rclpy.init(args=args)
@@ -50,56 +70,3 @@ def main(args=None):
   
 if __name__ == '__main__':
   main()
-
-
-# load the YOLOv8 model
-# model = YOLO('yolov8m.pt')
-
-
-# class ImageSubscriber(Node):
-#   """
-#   Create an ImageSubscriber class, which is a subclass of the Node class
-#   """
-#   def __init__(self):
-#     """
-#     Class constructor to set up the node
-#     """
-#     super().__init__('image_subscriber')
-      
-#     # Create the subscriber. This subscriber will receive an Image
-#     # from the video_frames topic. The queue size is 10 messages.
-#     self.subscription = self.create_subscription(
-#       Image, 
-#       'camera', 
-#       self.listener_callback, 
-#       10)
-#     self.subscription # prevent unused variable warning
-      
-#     # convert between ROS and OpenCV images
-#     self.br = CvBridge()
-   
-#   def listener_callback(self, data):
-#     """
-#     Callback function
-#     """
-#     self.get_logger().info('Receiving video frame')
- 
-#     # convert ros Image message to OpenCV image
-#     current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-#     image = current_frame
-#     # Object Detection
-#     results = model.predict(image, classes=[0,2])
-#     img = results[0].plot()
-
-#     cv2.imshow('Detected Frame', img)    
-#     cv2.waitKey(1)
-  
-# def main(args=None):
-#   rclpy.init(args=args)
-#   image_subscriber = ImageSubscriber()
-#   rclpy.spin(image_subscriber)
-#   image_subscriber.destroy_node()
-#   rclpy.shutdown()
-  
-# if __name__ == '__main__':
-#   main()

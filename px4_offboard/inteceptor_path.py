@@ -8,7 +8,7 @@ from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDur
 from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand
 from geometry_msgs.msg import Point
 
-class OffboardControl(Node):
+class InteceptorControl(Node):
     def __init__(self, namespace):
         super().__init__('minimal_publisher')
 
@@ -113,11 +113,15 @@ class OffboardControl(Node):
                 direction_y /= norm
                 direction_z /= norm
 
+            # correct yaw so it faces forward
+            yaw = np.arctan2(direction_y, direction_x)
+
             # Publish TrajectorySetpoint message
             trajectory_msg = TrajectorySetpoint()
             trajectory_msg.position = [self.current_x + direction_x * self.dt * 10,
                                        self.current_y + direction_y * self.dt * 10,
                                        self.current_z + direction_z * self.dt * 10]
+            trajectory_msg.yaw = yaw
             self.publisher_trajectory.publish(trajectory_msg)
 
             speed_factor = 100
@@ -129,11 +133,11 @@ class OffboardControl(Node):
 def main(args=None):
     rclpy.init(args=args)
     namespace = 'px4_2'
-    offboard_control = OffboardControl(namespace=namespace)
+    inteceptor_control = InteceptorControl(namespace=namespace)
 
-    rclpy.spin(offboard_control)
+    rclpy.spin(inteceptor_control)
 
-    offboard_control.destroy_node()
+    inteceptor_control.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':

@@ -68,7 +68,7 @@ class CVInteceptor(Node):
         # Circle parameters
         self.radius = 6.0  # meters
         self.linear_velocity = 2.7 # meters per second
-        self.altitude = 4.0  # Altitude in meters
+        self.altitude = 2.0  # Altitude in meters
         self.angular_velocity = self.linear_velocity / self.radius
         self.theta = 0.0  # Angle for circular motion
         
@@ -120,7 +120,8 @@ class CVInteceptor(Node):
             z = -self.altitude
             
             trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.position = [x, y, z]
+            # trajectory_msg.position = [x, y, z]
+
             trajectory_msg.yaw = self.theta  # Adjust yaw as needed, this example keeps it aligned with the circle
             self.publisher_trajectory.publish(trajectory_msg)
             

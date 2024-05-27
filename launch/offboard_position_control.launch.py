@@ -25,20 +25,12 @@ def generate_launch_description():
             namespace='px4_1',
             executable='recon_drone_path',
             name='recon'
-        ),
-        Node(
-            package='rviz2',
-            namespace='',
-            executable='rviz2',
-            name='rviz2',
-            arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
-        ),
-        Node(
-            package='px4_offboard',
-            namespace='',
-            executable='uav_camera_det',
-            name='uav_camera_det',
-            output='screen',
-            parameters=[{'use_sim_time': True}]
         )
+        # Node(
+        #     package='rviz2',
+        #     namespace='',
+        #     executable='rviz2',
+        #     name='rviz2',
+        #     arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
+        # )
     ])
