@@ -5,6 +5,7 @@ from rclpy.node import Node
 
 from sensor_msgs.msg import Image 
 from px4_msgs.msg import TrajectorySetpoint
+from geometry_msgs.msg import Twist
 
 from cv_bridge import CvBridge 
 import cv2
@@ -36,6 +37,11 @@ class ImageSubscriber(Node):
             '/px4_2/fmu/in/trajectory_setpoint', 
             self.get_inteceptor_trajectory,
             qos_profile)
+        
+        self.inteceptor_velocity = self.create_publisher(
+           TrajectorySetpoint,
+           'px4_2/fmu/in/trajectory_setpoint',
+           qos_profile)
 
         self.current_yaw = 0.0
 
@@ -47,6 +53,28 @@ class ImageSubscriber(Node):
     def get_inteceptor_trajectory(self, msg):
         ''' gets inteceptor trajectory from topic '''
         self.current_yaw = msg.yaw
+
+    def inteceptor_movement_to_recon_centre(self,
+                                            recon_centroid_x, recon_centroid_y,
+                                            direction_point_x, direction_point_y
+                                            ):
+    
+        dx = recon_centroid_x - direction_point_x
+        dy = recon_centroid_y - direction_point_y
+
+        magnitude = (dx**2 + dy**2)**0.5
+        direction_x = dx / magnitude
+        direction_y = dy / magnitude
+
+        k_p = 0.1  # Proportional gain
+        velocity_x = k_p * direction_x
+        velocity_y = k_p * direction_y
+
+        twist = TrajectorySetpoint()
+        twist.velocity[0] = velocity_x
+        twist.velocity[1] = velocity_y
+
+        self.inteceptor_velocity.publish(twist)
        
     def listener_callback(self, data):
 
@@ -82,7 +110,7 @@ class ImageSubscriber(Node):
         # draw direction point
         cv2.circle(img, (direction_point_x, direction_point_y), 5, (255, 0, 0), -1)  
 
-        drone_centroid_x, drone_centroid_y = None, None
+        recon_centroid_x, recon_centroid_y = None, None
 
         # finds centre and marks with red dot
         for bbox in results.xyxy[0].cpu().numpy():
@@ -91,22 +119,28 @@ class ImageSubscriber(Node):
             if 0 <= x_min < width and 0 <= x_max < width and 0 <= y_min < height and 0 <= y_max < height:
                 
               # Calculate the recon drones centroid
-              centroid_x = int((x_min + x_max) / 2)
-              centroid_y = int((y_min + y_max) / 2)
+              r_centroid_x = int((x_min + x_max) / 2)
+              r_centroid_y = int((y_min + y_max) / 2)
 
-              drone_centroid_x = centroid_x
-              drone_centroid_y = centroid_y
+              recon_centroid_x = r_centroid_x
+              recon_centroid_y = r_centroid_y
               # draw the centroid
-              cv2.circle(img, (centroid_x, centroid_y), 5, (0, 0, 255), -1)
+              cv2.circle(img, (r_centroid_x, r_centroid_y), 5, (0, 0, 255), -1)
 
         # if drone centroid then cretae line
-        if drone_centroid_x is not None and drone_centroid_y is not None:
-           cv2.line(img, 
+        if recon_centroid_x is not None and recon_centroid_y is not None:
+           
+            # publish twist msg to topic
+            self.inteceptor_movement_to_recon_centre(
+                                                    recon_centroid_x, recon_centroid_y,
+                                                    direction_point_x, direction_point_y
+                                                    )
+            cv2.line(img, 
                     (direction_point_x, direction_point_y), 
-                    (drone_centroid_x, drone_centroid_y), 
+                    (recon_centroid_x, recon_centroid_y), 
                     (0, 255, 0), 2)
 
-           cv2.putText(img,  
+            cv2.putText(img,  
                 'Recon Drone Detected',  
                 (50, 50),  
                 self.cvfont, 1,  
@@ -117,7 +151,7 @@ class ImageSubscriber(Node):
         cv2.imshow('Detected Frame', img)
         cv2.waitKey(1)
         
-  
+
 def main(args=None):
   rclpy.init(args=args)
   image_subscriber = ImageSubscriber()

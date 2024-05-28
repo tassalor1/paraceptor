@@ -1,12 +1,16 @@
 #!/usr/bin/env python3
-import rclpy
+
 import numpy as np
+
+import rclpy
 from rclpy.node import Node
 from rclpy.clock import Clock
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
+from rclpy.qos import (QoSProfile, QoSReliabilityPolicy, 
+                       QoSHistoryPolicy, QoSDurabilityPolicy)
 
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand, VehicleLocalPosition
-from geometry_msgs.msg import Point
+from px4_msgs.msg import (OffboardControlMode, TrajectorySetpoint, 
+                          VehicleStatus, VehicleCommand, VehicleLocalPosition)
+from geometry_msgs.msg import Point, Twist
 
 class ReconControl(Node):
     def __init__(self, namespace):
@@ -30,6 +34,13 @@ class ReconControl(Node):
             VehicleLocalPosition,
             f'/{namespace}/fmu/out/vehicle_local_position',
             self.local_position_callback,
+            qos_profile
+        )
+
+        self.intecpeptor_velocity_to_target = self.create_subscription(
+            TrajectorySetpoint,
+            f'/{namespace}/fmu/in/trajectory_setpoint',
+            self.show_recon_twist,
             qos_profile
         )
 
@@ -95,6 +106,13 @@ class ReconControl(Node):
         coords_msg.y = self.current_y
         coords_msg.z = self.current_z
         self.publisher_coords.publish(coords_msg)
+
+    def show_recon_twist(self, msg):
+
+        self.linear_x = msg.x
+        self.linear_y = msg.y
+        self.linear_z = msg.z
+        self.get_logger().info(f"""INTECEPTOR DRONE twist message to recon linear_X: {self.linear_x }, linear_y: {self.linear_y}, linear_z: {self.linear_z} """)
        
 
     def cmdloop_callback(self):

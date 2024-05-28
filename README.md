@@ -66,6 +66,7 @@ cd ~/paraceptor
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
+source ../px4_ros_com_ws/src/install/setup.bash
 python px4_offboard/uav_camera_det.py
 ```
 
