@@ -37,13 +37,6 @@ class ReconControl(Node):
             qos_profile
         )
 
-        self.intecpeptor_velocity_to_target = self.create_subscription(
-            TrajectorySetpoint,
-            f'/{namespace}/fmu/in/trajectory_setpoint',
-            self.show_recon_twist,
-            qos_profile
-        )
-
         self.vehicle_command_publisher_ = self.create_publisher(
             VehicleCommand, 
             f'/{namespace}/fmu/in/vehicle_command', 
@@ -107,13 +100,6 @@ class ReconControl(Node):
         coords_msg.z = self.current_z
         self.publisher_coords.publish(coords_msg)
 
-    def show_recon_twist(self, msg):
-
-        self.linear_x = msg.x
-        self.linear_y = msg.y
-        self.linear_z = msg.z
-        self.get_logger().info(f"""INTECEPTOR DRONE twist message to recon linear_X: {self.linear_x }, linear_y: {self.linear_y}, linear_z: {self.linear_z} """)
-       
 
     def cmdloop_callback(self):
         # Publish offboard control modes

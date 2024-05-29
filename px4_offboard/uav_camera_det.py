@@ -58,7 +58,6 @@ class ImageSubscriber(Node):
                                             recon_centroid_x, recon_centroid_y,
                                             direction_point_x, direction_point_y
                                             ):
-    
         dx = recon_centroid_x - direction_point_x
         dy = recon_centroid_y - direction_point_y
 
@@ -75,6 +74,7 @@ class ImageSubscriber(Node):
         twist.velocity[1] = velocity_y
 
         self.inteceptor_velocity.publish(twist)
+
        
     def listener_callback(self, data):
 
@@ -135,6 +135,8 @@ class ImageSubscriber(Node):
                                                     recon_centroid_x, recon_centroid_y,
                                                     direction_point_x, direction_point_y
                                                     )
+
+
             cv2.line(img, 
                     (direction_point_x, direction_point_y), 
                     (recon_centroid_x, recon_centroid_y), 

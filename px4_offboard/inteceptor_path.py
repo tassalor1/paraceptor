@@ -33,6 +33,14 @@ class InteceptorControl(Node):
             self.get_recon_coords,
             qos_profile
         )
+
+        # subscribe to twist cmds sent from camera 
+        self.intecpeptor_velocity_to_target = self.create_subscription(
+            TrajectorySetpoint,
+            f'/{namespace}/fmu/in/trajectory_setpoint',
+            self.get_cv_recon_cmd,
+            qos_profile
+        )
         
         self.vehicle_command_publisher_ = self.create_publisher(
             VehicleCommand, 
@@ -58,6 +66,10 @@ class InteceptorControl(Node):
         self.recon_y = 0.0
         self.recon_z = 0.0
 
+        self.cv_recon_x = 0.0
+        self.cv_recon_y = 0.0
+        self.cv_recon_z = 0.0
+
         self.current_x = 0.0
         self.current_y = 0.0
         self.current_z = 0.0
@@ -66,6 +78,8 @@ class InteceptorControl(Node):
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
 
         self.arming_timer = self.create_timer(5.0, self.arm_vehicle) # will activate function after 5 secs
+
+        self.recon_locked_on = False
 
     def arm_vehicle(self):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD:
@@ -86,7 +100,71 @@ class InteceptorControl(Node):
         self.recon_x = msg.x
         self.recon_y = msg.y
         self.recon_z = msg.z
+
+    def get_cv_recon_cmd(self, msg):
+        self.recon_locked_on = True
+        self.cv_recon_x = msg.velocity[0]
+        self.cv_recon_y = msg.velocity[1]
+        self.cv_recon_z = msg.velocity[2]
+        
+
     
+    def follow_recon_from_home_station(self):
+        # calc the direction vector towards the target
+        direction_x = self.recon_x - self.current_x
+        direction_y = self.recon_y - self.current_y
+        direction_z = self.recon_z - self.current_z
+
+        # norm the direction vector to get a unit vector
+        norm = np.sqrt(direction_x**2 + direction_y**2 + direction_z**2)
+        if norm > 0:
+            direction_x /= norm
+            direction_y /= norm
+            direction_z /= norm
+
+        # correct yaw so it faces forward
+        yaw = np.arctan2(direction_y, direction_x)
+
+        # Publish TrajectorySetpoint message
+        trajectory_msg = TrajectorySetpoint()
+        trajectory_msg.position = [self.current_x + direction_x * self.dt * 10,
+                                    self.current_y + direction_y * self.dt * 10,
+                                    self.current_z + direction_z * self.dt * 10]
+        trajectory_msg.yaw = yaw
+        self.publisher_trajectory.publish(trajectory_msg)
+        
+
+        speed_factor = 100
+        # Update current position for next iteration 
+        self.current_x += direction_x * self.dt * speed_factor
+        self.current_y += direction_y * self.dt * speed_factor
+        self.current_z += direction_z * self.dt * speed_factor
+    
+    def follow_recon_from_cv(self):
+        self.get_logger().info("following recon with CV cmds")
+        # calc the direction vector towards the target
+        direction_x = self.cv_recon_x - self.current_x
+        direction_y = self.cv_recon_y - self.current_y
+        direction_z = self.cv_recon_z - self.current_z
+
+
+        # correct yaw so it faces forward
+        yaw = np.arctan2(direction_y, direction_x)
+
+        # Publish TrajectorySetpoint message
+        trajectory_msg = TrajectorySetpoint()
+        trajectory_msg.position = [self.current_x + direction_x * self.dt * 10,
+                                    self.current_y + direction_y * self.dt * 10,
+                                    self.current_z + direction_z * self.dt * 10]
+        trajectory_msg.yaw = yaw
+        self.publisher_trajectory.publish(trajectory_msg)
+        
+
+        speed_factor = 100
+        # Update current position for next iteration 
+        self.current_x += direction_x * self.dt * speed_factor
+        self.current_y += direction_y * self.dt * speed_factor
+        self.current_z += direction_z * self.dt * speed_factor
 
     def cmdloop_callback(self):
         # Publish offboard control modes
@@ -98,40 +176,12 @@ class InteceptorControl(Node):
         self.publisher_offboard_mode.publish(offboard_msg)
 
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
-            target_x = self.recon_x
-            target_y = self.recon_y
-            target_z = self.recon_z
-
-            # calc the direction vector towards the target
-            direction_x = target_x - self.current_x
-            direction_y = target_y - self.current_y
-            direction_z = target_z - self.current_z
-
-            # norm the direction vector to get a unit vector
-            norm = np.sqrt(direction_x**2 + direction_y**2 + direction_z**2)
-            if norm > 0:
-                direction_x /= norm
-                direction_y /= norm
-                direction_z /= norm
-
-            # correct yaw so it faces forward
-            yaw = np.arctan2(direction_y, direction_x)
-
-            # Publish TrajectorySetpoint message
-            trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.position = [self.current_x + direction_x * self.dt * 10,
-                                       self.current_y + direction_y * self.dt * 10,
-                                       self.current_z + direction_z * self.dt * 10]
-            trajectory_msg.yaw = yaw
-            self.publisher_trajectory.publish(trajectory_msg)
+           
+            if self.recon_locked_on:
+                self.follow_recon_from_cv()
+            else:
+                self.follow_recon_from_home_station()
             
-
-            speed_factor = 100
-            # Update current position for next iteration 
-            self.current_x += direction_x * self.dt * speed_factor
-            self.current_y += direction_y * self.dt * speed_factor
-            self.current_z += direction_z * self.dt * speed_factor
-
 def main(args=None):
     rclpy.init(args=args)
     namespace = 'px4_2'
