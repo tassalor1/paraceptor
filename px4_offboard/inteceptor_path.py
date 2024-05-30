@@ -179,8 +179,8 @@ class InteceptorControl(Node):
            
             if self.recon_locked_on:
                 self.follow_recon_from_cv()
-            else:
-                self.follow_recon_from_home_station()
+            # else:
+            #     self.follow_recon_from_home_station()
             
 def main(args=None):
     rclpy.init(args=args)
