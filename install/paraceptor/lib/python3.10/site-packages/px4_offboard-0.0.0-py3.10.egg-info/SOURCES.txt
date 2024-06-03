@@ -15,6 +15,7 @@ launch/visualize.launch.py
 px4_offboard/__init__.py
 px4_offboard/image_subscriber.py
 px4_offboard/inteceptor_path.py
+px4_offboard/pid_control.py
 px4_offboard/recon_drone_path.py
 px4_offboard/uav_camera_det.py
 px4_offboard/velocity_control.py

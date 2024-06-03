@@ -5,6 +5,7 @@
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/velocity_control.py
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/visualizer.py
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/recon_drone_path.py
+/home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/pid_control.py
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/__init__.cpython-310.pyc
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/inteceptor_path.cpython-310.pyc
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/uav_camera_det.cpython-310.pyc
@@ -12,6 +13,7 @@
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/velocity_control.cpython-310.pyc
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/visualizer.cpython-310.pyc
 /home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/recon_drone_path.cpython-310.pyc
+/home/connor/paraceptor/install/paraceptor/lib/python3.10/site-packages/px4_offboard/__pycache__/pid_control.cpython-310.pyc
 /home/connor/paraceptor/install/paraceptor/share/ament_index/resource_index/packages/px4_offboard
 /home/connor/paraceptor/install/paraceptor/share/ament_index/resource_index/packages/visualize.rviz
 /home/connor/paraceptor/install/paraceptor/share/px4_offboard/package.xml

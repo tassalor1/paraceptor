@@ -177,10 +177,10 @@ class InteceptorControl(Node):
 
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
            
-            if self.recon_locked_on:
-                self.follow_recon_from_cv()
+            # if self.recon_locked_on:
+            #     self.follow_recon_from_cv()
             # else:
-            #     self.follow_recon_from_home_station()
+            self.follow_recon_from_home_station()
             
 def main(args=None):
     rclpy.init(args=args)
