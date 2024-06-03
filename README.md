@@ -89,14 +89,21 @@ source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
-
 ## After script changes #####################
 ```
 colcon build --packages-select px4_offboard
 source install/setup.bash
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
+### Base Station Stuff
 
+The base station is a mockup radar system which constantly publishes the enemy drone's predicted position 5 seconds into the future. So you just have to subscribe to the base station and use that as the trajectory setpoint. So to run the base station control instead
+
+```
+colcon build --packages-select px4_offboard
+source install/setup.bash
+ros2 launch px4_offboard offboard_base_comm.launch.py
+```
 
 ### Hardware
 
@@ -116,3 +123,4 @@ To run the offboard position control example, run the node on the companion comp
 ```
 ros2 launch px4_offboard offboard_hardware_position_control.launch.py
 ```
+

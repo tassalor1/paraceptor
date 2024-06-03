@@ -26,8 +26,15 @@ setup(
                 'inteceptor_path = px4_offboard.inteceptor_path:main',
                 'visualizer = px4_offboard.visualizer:main',
                 'uav_camera_det = px4_offboard.uav_camera_det:main',
+<<<<<<< HEAD
                 'base_station = px4_offboard.base_station:main',
                 'offboard_base_comm = px4_offboard.offboard_base_comm:main',
+=======
+                'cv_inteceptor = px4_offboard.cv_inteceptor:main',
+                'cv_recon = px4_offboard.cv_recon:main',
+                'base_station = px4_offboard.base_station:main',
+                'offboard_base_comm = px4_offboard.offboard_base_comm:main'
+>>>>>>> f13672676c575d4bbb29430d0f3ed6a3861c019a
         ],
     },
 )
