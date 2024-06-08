@@ -29,7 +29,7 @@ class InteceptorControl(Node):
         # subscribe to recon_coords
         self.recon_coords_sub = self.create_subscription(
             Point,
-            '/px4_1/fmu/out/recon_coords',  
+            '/px4_1/fmu/out/pred_pos_5_sec',  
             self.get_recon_coords,
             qos_profile
         )

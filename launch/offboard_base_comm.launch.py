@@ -40,8 +40,4 @@ def generate_launch_description():
             name='rviz2',
             arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
         )
-<<<<<<< HEAD
     ])
-=======
-    ])
->>>>>>> f13672676c575d4bbb29430d0f3ed6a3861c019a

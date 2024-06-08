@@ -95,15 +95,30 @@ colcon build --packages-select px4_offboard
 source install/setup.bash
 ros2 launch px4_offboard offboard_position_control.launch.py
 ```
-### Base Station Stuff
+### Base Station Integration Test
 
-The base station is a mockup radar system which constantly publishes the enemy drone's predicted position 5 seconds into the future. So you just have to subscribe to the base station and use that as the trajectory setpoint. So to run the base station control instead
+The base station is a mockup radar system which constantly publishes the enemy drone's predicted position 5 seconds into the future. So you just have to subscribe to the base station and use that as the trajectory setpoint. 
 
+cd into your colcon workspace, and replace the paraceptor package with this repo. Go the the root of the repository, then:
 ```
 colcon build --packages-select px4_offboard
 source install/setup.bash
-ros2 launch px4_offboard offboard_base_comm.launch.py
 ```
+Start the recon drone, the interceptor drone and qground control. Then run
+
+```
+ros2 launch px4_offboard offboard_position_control.launch.py
+```
+
+To verify how the system works, run
+
+```
+ros2 run rqt_graph rqt_graph
+```
+
+*NOTE*: Switch to offboard control after manually doing takeoff. Currently automatic take-off is a bit buggy.
+
+*TODO*: Height not more than 3 metres. Fix that.
 
 ### Hardware
 
@@ -123,4 +138,5 @@ To run the offboard position control example, run the node on the companion comp
 ```
 ros2 launch px4_offboard offboard_hardware_position_control.launch.py
 ```
+
 
