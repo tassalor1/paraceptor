@@ -32,7 +32,6 @@ def generate_launch_description():
             executable= 'base_station',
             name = 'base_station'
         )
-
         # Node(
         #     package='rviz2',
         #     namespace='',

@@ -106,8 +106,6 @@ class InteceptorControl(Node):
         self.cv_recon_x = msg.velocity[0]
         self.cv_recon_y = msg.velocity[1]
         self.cv_recon_z = msg.velocity[2]
-        
-
     
     def follow_recon_from_home_station(self):
         # calc the direction vector towards the target
@@ -141,7 +139,7 @@ class InteceptorControl(Node):
         self.current_z += direction_z * self.dt * speed_factor
     
     def follow_recon_from_cv(self):
-        self.get_logger().info("following recon with CV cmds")
+        # self.get_logger().info("following recon with CV cmds")
         # calc the direction vector towards the target
         direction_x = self.cv_recon_x - self.current_x
         direction_y = self.cv_recon_y - self.current_y
@@ -178,9 +176,9 @@ class InteceptorControl(Node):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
            
             # if self.recon_locked_on:
-            #     self.follow_recon_from_cv()
+            self.follow_recon_from_cv()
             # else:
-            self.follow_recon_from_home_station()
+            # self.follow_recon_from_home_station()
             
 def main(args=None):
     rclpy.init(args=args)
