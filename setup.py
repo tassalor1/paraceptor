@@ -28,8 +28,7 @@ setup(
                 'uav_camera_det = px4_offboard.uav_camera_det:main',
                 'base_station = px4_offboard.base_station:main',
                 'offboard_base_comm = px4_offboard.offboard_base_comm:main',
-                'cv_inteceptor = px4_offboard.cv_inteceptor:main',
-                'cv_recon = px4_offboard.cv_recon:main'
+                'cv_offboard = px4_offboard.cv_offboard:main',
         ],
     },
 )

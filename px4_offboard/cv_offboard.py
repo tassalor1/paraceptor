@@ -1,16 +1,12 @@
 #!/usr/bin/env python3
-
-import numpy as np
-
 import rclpy
+import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
-from rclpy.qos import (QoSProfile, QoSReliabilityPolicy, 
-                       QoSHistoryPolicy, QoSDurabilityPolicy)
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
-from px4_msgs.msg import (OffboardControlMode, TrajectorySetpoint, 
-                          VehicleStatus, VehicleCommand, VehicleLocalPosition)
-from geometry_msgs.msg import Point, Twist
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand, VehicleLocalPosition
+from geometry_msgs.msg import Twist
 
 class ReconControl(Node):
     def __init__(self, namespace):
@@ -57,14 +53,14 @@ class ReconControl(Node):
             f'/{namespace}/fmu/out/recon_coords', 
             qos_profile)
 
-        timer_period = 0.03  # seconds
+        timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
 
         # Circle parameters
         self.radius = 500.0  # meters
-        self.linear_velocity = 200  # meters per second
-        self.altitude = 200.0  # Altitude in meters
+        self.linear_velocity = 90.0  # meters per second
+        self.altitude = 60.0  # Altitude in meters
         self.angular_velocity = self.linear_velocity / self.radius
         self.theta = 0.0  # Angle for circular motion
         
@@ -100,7 +96,6 @@ class ReconControl(Node):
         coords_msg.z = self.current_z
         self.publisher_coords.publish(coords_msg)
 
-
     def cmdloop_callback(self):
         # Publish offboard control modes
         offboard_msg = OffboardControlMode()
@@ -113,17 +108,20 @@ class ReconControl(Node):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             x = self.radius * np.cos(self.theta)
             y = self.radius * np.sin(self.theta)
-            z = -self.altitude
+            z = -self.altitude  # Assuming negative is down
             
             trajectory_msg = TrajectorySetpoint()
             trajectory_msg.position = [x, y, z]
             trajectory_msg.yaw = self.theta  # Keep yaw aligned with the circle
             self.publisher_trajectory.publish(trajectory_msg)
+            self.get_logger().info(f"Publishing trajectory: x={x}, y={y}, z={z}, yaw={self.theta}")
             
             # Update theta for the next iteration
             self.theta += self.angular_velocity * self.dt
             if self.theta >= 2 * np.pi:
                 self.theta -= 2 * np.pi
+        else:
+            self.get_logger().info(f"Offboard not set or vehicle not armed: NAV_STATE={self.nav_state}, ARMING_STATE={self.arming_state}")
 
 def main(args=None):
     rclpy.init(args=args)

@@ -13,7 +13,7 @@ from ultralytics import YOLO
 import torch
 import numpy as np 
 
-model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/aniketh/programming/Lancelot/paraceptor_ws/src/paraceptor/yolov5/weights/best.pt')
+model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
 class ImageSubscriber(Node):
     def __init__(self):
