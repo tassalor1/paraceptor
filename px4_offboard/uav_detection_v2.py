@@ -64,16 +64,13 @@ class CVProcessor:
         for bbox in results.xyxy[0].cpu().numpy():
             if len(bbox) >= 6:  # Ensure there are enough values to unpack
                 x_min, y_min, x_max, y_max, conf, cls = bbox
-                print(f"Bounding Box: {bbox}")  # Debug: Print bounding box
                 if 0 <= x_min < width and 0 <= x_max < width and 0 <= y_min < height and 0 <= y_max < height:
-                    print(f"Valid Bounding Box within Image Bounds: {bbox}")  # Debug: Valid bounding box
                     if conf > highest_conf:
                         highest_conf = conf
                         best_centroid_x = int((x_min + x_max) / 2)
                         best_centroid_y = int((y_min + y_max) / 2)
-                        print(f"New Best Centroid: ({best_centroid_x}, {best_centroid_y}) with Conf: {highest_conf}")  # Debug: New best centroid
                 else:
-                    print(f"Bounding Box Out of Image Bounds: {bbox}")  # Debug: Bounding box out of bounds
+                    print(f"Bounding Box Out of Image Bounds: {bbox}") 
         return best_centroid_x, best_centroid_y, highest_conf
 
     def draw_annotations(self, img, height, width, recon_centroid_x, recon_centroid_y):
