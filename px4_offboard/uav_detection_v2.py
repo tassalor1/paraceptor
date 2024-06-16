@@ -24,7 +24,7 @@ class CVProcessor:
         self.propeller_mask_height_ratio = propeller_mask_height_ratio
         self.propeller_mask_width_ratio = propeller_mask_width_ratio
         self.vertical_offset_ratio = vertical_offset_ratio
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best_fixed.pt')
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
     def process_image(self, current_frame, current_yaw):
         height, width, _ = current_frame.shape
