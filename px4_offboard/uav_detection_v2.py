@@ -10,7 +10,6 @@ from std_msgs.msg import Float32
 
 from cv_bridge import CvBridge 
 import cv2
-from ultralytics import YOLO 
 import torch
 import numpy as np
 
