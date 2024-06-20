@@ -10,10 +10,9 @@ import time
 
 import numpy as np
 
-from imutils.video import VideoStream
 from midas.model_loader import default_models, load_model
-from midas_mo.cv_processor import CVProcessor
-from utils_midas import read_pfm
+from cv_processor import CVProcessor
+
 
 
 
@@ -106,13 +105,12 @@ def create_side_by_side(image, depth, grayscale):
         return np.concatenate((image, right_side), axis=1)
 
 
-def run(image, output_path, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side=False, height=None,
+def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side=False, height=None,
         square=False, grayscale=False):
     """Run MonoDepthNN to compute depth maps.
 
     Args:
         image (str): image
-        output_path (str): path to output folder
         model_path (str): path to saved model
         model_type (str): the model type
         optimize (bool): optimize the model to half-floats on CUDA?
@@ -121,19 +119,16 @@ def run(image, output_path, model_path, model_type="dpt_swin2_tiny_256", optimiz
         square (bool): resize to a square resolution?
         grayscale (bool): use a grayscale colormap?
     """
-    print("Initialize")
+    colour = None
+    width = None
+    height = None
 
     # select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device: %s" % device)
-
     model, transform, net_w, net_h = load_model(device, model_path, model_type, optimize, height, square)
 
-
     if image is not None:
-        if output_path is None:
-            print("Warning: No output path specified. Images will be processed but not shown or stored anywhere.")
-
         # input
         original_image_rgb = utils_midas.read_image(image)  # in [0, 1]
         image_t = transform({"image": original_image_rgb})["image"]
@@ -143,47 +138,24 @@ def run(image, output_path, model_path, model_type="dpt_swin2_tiny_256", optimiz
             prediction = process(device, model, model_type, image_t, (net_w, net_h), original_image_rgb.shape[1::-1],
                                  optimize, False)
 
-        if not os.path.exists(output_path):
-            os.makedirs(output_path)
-
-        t
-
-    else:
-        with torch.no_grad():
-            fps = 1
-            video = VideoStream(0).start()
-            time_start = time.time()
-            frame_index = 0
-            while True:
-                frame = video.read()
-                if frame is not None:
-                    original_image_rgb = np.flip(frame, 2)  # in [0, 255] (flip required to get RGB)
-                    image = transform({"image": original_image_rgb/255})["image"]
-
-                    prediction = process(device, model, model_type, image, (net_w, net_h),
-                                         original_image_rgb.shape[1::-1], optimize, True)
-
-                    original_image_bgr = np.flip(original_image_rgb, 2) if side else None
-                    content = create_side_by_side(original_image_bgr, prediction, grayscale)
-                    cv2.imshow('MiDaS Depth Estimation - Press Escape to close window ', content/255)
-
-                    if output_path is not None:
-                        filename = os.path.join(output_path, 'Camera' + '-' + model_type + '_' + str(frame_index))
-                        cv2.imwrite(filename + ".png", content)
-
-                    alpha = 0.1
-                    if time.time()-time_start > 0:
-                        fps = (1 - alpha) * fps + alpha * 1 / (time.time()-time_start)  # exponential moving average
-                        time_start = time.time()
-                    print(f"\rFPS: {round(fps,2)}", end="")
-
-                    if cv2.waitKey(1) == 27:  # Escape key
-                        break
-
-                    frame_index += 1
-        print()
-
-    print("Finished")
+        # predict distance
+        if prediction is not None:
+            height, width = original_image_rgb.shape[1::-1]
+            shape = (height, width, 3) if colour else (height, width)
+            data = np.reshape(prediction, shape)
+            depth_map = np.flipud(data)
+            valid_depth_values = depth_map[(depth_map > 0) & np.isfinite(depth_map)]
+            if len(valid_depth_values) == 0:
+                print("No valid depth values found in the depth map")
+            else:
+                print(f"Depth Map Statistics:")
+                print(f"Min Depth: {np.min(valid_depth_values)}")
+                print(f"Max Depth: {np.max(valid_depth_values)}")
+                print(f"Mean Depth: {np.mean(valid_depth_values)}")
+                print(f"Median Depth: {np.median(valid_depth_values)}")
+                # Compute the median depth from the valid values
+                median_depth = np.median(valid_depth_values)
+                print(f"The distance to the detected drone is approximately {median_depth:.2f} meters")
 
 
 if __name__ == "__main__":
