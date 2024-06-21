@@ -57,14 +57,14 @@ class ReconControl(Node):
             f'/{namespace}/fmu/out/recon_coords', 
             qos_profile)
 
-        timer_period = 0.03  # seconds
+        timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
 
         # Circle parameters
         self.radius = 500.0  # meters
-        self.linear_velocity = 200  # meters per second
-        self.altitude = 200.0  # Altitude in meters
+        self.linear_velocity = 90  # meters per second
+        self.altitude = 60.0  # Altitude in meters
         self.angular_velocity = self.linear_velocity / self.radius
         self.theta = 0.0  # Angle for circular motion
         

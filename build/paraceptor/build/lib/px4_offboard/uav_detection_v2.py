@@ -10,21 +10,72 @@ from std_msgs.msg import Float32
 
 from cv_bridge import CvBridge 
 import cv2
-from ultralytics import YOLO 
 import torch
 import numpy as np
 
 from simple_pid import PID
 
-class CVProcessor:
+import sys
+import os
 
-    def __init__(self, pid_x, pid_y, propeller_mask_height_ratio, propeller_mask_width_ratio, vertical_offset_ratio):
+# Get the absolute path of the current script
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# Get the absolute path of the parent directory
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+
+# Add the parent directory to the Python path
+sys.path.append(parent_dir)
+
+# Import the run function from midasModel.run
+from midasModel.run import run
+
+class DepthDistance:
+    def __init__(self, best_bbox, img) -> None:
+        self.best_bbox = best_bbox
+        self.img = img
+
+
+        self.default_models = {
+        'dpt_swin2_tiny_256': '/home/connor/cv_drone/MiDaS/weights/dpt_swin2_tiny_256.pt',
+        }
+
+
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
+
+    def slice_img(self):
+        best_bbox1 = list(map(int, self.best_bbox))
+        height, width = self.img.shape[:2]
+        best_bbox2 = [
+            max(0, min(best_bbox1[0], width)),
+            max(0, min(best_bbox1[1], height)),
+            max(0, min(best_bbox1[2], width)),
+            max(0, min(best_bbox1[3], height))
+        ]
+        self.img_sliced = self.img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
+
+    def run(self):
+        median_depth = run(
+            image=self.img_sliced,
+            output_path='/home/connor/paraceptor/MiDaS/output/',
+            model_path=self.default_models['dpt_swin2_tiny_256'],
+            model_type='dpt_swin2_tiny_256',
+            optimize=True,
+            height=256,
+            square=True,
+            )
+        return median_depth
+    
+class CVProcessor:
+    def __init__(self, pid_x, pid_y, propeller_mask_height_ratio,
+                 propeller_mask_width_ratio, vertical_offset_ratio):
         self.pid_x = pid_x
         self.pid_y = pid_y
         self.propeller_mask_height_ratio = propeller_mask_height_ratio
         self.propeller_mask_width_ratio = propeller_mask_width_ratio
         self.vertical_offset_ratio = vertical_offset_ratio
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best_fixed.pt')
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
     def process_image(self, current_frame, current_yaw):
         height, width, _ = current_frame.shape
@@ -33,18 +84,23 @@ class CVProcessor:
         results = self.model(masked_image)
         img = np.copy(results.render()[0])
 
-        recon_centroid_x, recon_centroid_y, highest_conf = self.get_centroid(results, height, width)
+        recon_centroid_x, recon_centroid_y, highest_conf, best_bbox = self.get_centroid(results, height, width,)
 
         if recon_centroid_x is not None and recon_centroid_y is not None:
+            # depth model
+            depth_model = DepthDistance(best_bbox=best_bbox, img=img)
+            median_depth = depth_model.run()
+
             error_x = recon_centroid_x - width / 2
             error_y = recon_centroid_y - height / 2
 
             velocity_x = self.pid_x(error_x)
             velocity_y = self.pid_y(error_y)
 
-            self.draw_annotations(img, height, width, recon_centroid_x, recon_centroid_y)
+            self.draw_annotations(img, height, width, 
+                                  recon_centroid_x, recon_centroid_y, median_depth)
 
-            return img, velocity_x, velocity_y, highest_conf
+            return img, velocity_x, velocity_y, highest_conf, best_bbox, median_depth
         
         return img, None, None, None
 
@@ -61,25 +117,33 @@ class CVProcessor:
     def get_centroid(self, results, height, width):
         highest_conf = 7.5
         best_centroid_x, best_centroid_y = None, None
+        best_bbox = None
         for bbox in results.xyxy[0].cpu().numpy():
             if len(bbox) >= 6:  # Ensure there are enough values to unpack
                 x_min, y_min, x_max, y_max, conf, cls = bbox
-                print(f"Bounding Box: {bbox}")  # Debug: Print bounding box
                 if 0 <= x_min < width and 0 <= x_max < width and 0 <= y_min < height and 0 <= y_max < height:
-                    print(f"Valid Bounding Box within Image Bounds: {bbox}")  # Debug: Valid bounding box
                     if conf > highest_conf:
                         highest_conf = conf
                         best_centroid_x = int((x_min + x_max) / 2)
                         best_centroid_y = int((y_min + y_max) / 2)
-                        print(f"New Best Centroid: ({best_centroid_x}, {best_centroid_y}) with Conf: {highest_conf}")  # Debug: New best centroid
+                        best_bbox = (x_min, y_min, x_max, y_max)
                 else:
-                    print(f"Bounding Box Out of Image Bounds: {bbox}")  # Debug: Bounding box out of bounds
-        return best_centroid_x, best_centroid_y, highest_conf
+                    print(f"Bounding Box Out of Image Bounds: {bbox}") 
+        return best_centroid_x, best_centroid_y, highest_conf, best_bbox
 
-    def draw_annotations(self, img, height, width, recon_centroid_x, recon_centroid_y):
+    def draw_annotations(self, img, height, width, 
+                     recon_centroid_x, recon_centroid_y, 
+                     median_depth):
+        
         cv2.circle(img, (recon_centroid_x, recon_centroid_y), 5, (0, 0, 255), -1)
         cv2.line(img, (int(width / 2), int(height / 2)), (recon_centroid_x, recon_centroid_y), (0, 255, 0), 2)
         cv2.putText(img, 'Recon Drone Detected', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
+
+        text = f'Median Depth: {median_depth:.2f}'
+        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+        text_x = width - text_size[0] - 10 
+        text_y = height - 10  
+        cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
 
 class ImageSubscriber(Node):
     def __init__(self):
@@ -128,14 +192,15 @@ class ImageSubscriber(Node):
         propeller_mask_width_ratio = 0.20
         vertical_offset_ratio = 0.10
 
-        self.cv_processor = CVProcessor(pid_x, pid_y, propeller_mask_height_ratio, propeller_mask_width_ratio, vertical_offset_ratio)
+        self.cv_processor = CVProcessor(pid_x, pid_y, propeller_mask_height_ratio, 
+                                        propeller_mask_width_ratio, vertical_offset_ratio)
 
     def get_inteceptor_trajectory(self, msg):
         self.current_yaw = msg.yaw
 
     def listener_callback(self, data):
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        img, velocity_x, velocity_y, highest_conf = self.cv_processor.process_image(current_frame, self.current_yaw)
+        img, velocity_x, velocity_y, highest_conf, median_depth = self.cv_processor.process_image(current_frame, self.current_yaw)
 
         if velocity_x is not None and velocity_y is not None:
             twist = TrajectorySetpoint()

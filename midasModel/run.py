@@ -1,13 +1,8 @@
 """Compute depth maps for images in the input folder.
 """
-import os
-import glob
-import torch
-import utils_midas as utils_midas
-import cv2
-import argparse
-import time
 
+import torch
+import cv2
 import numpy as np
 
 from midas.model_loader import default_models, load_model
@@ -15,6 +10,20 @@ from cv_processor import CVProcessor
 
 
 
+def read_image(image):
+    """Read image and output RGB image (0-1).
+
+    Args:
+        path (str): path to file
+
+    Returns:
+        array: RGB image (0-1)
+    """
+    if img.ndim == 2:
+        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+
+    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
+    return img
 
 first_execution = True
 def process(device, model, model_type, image, input_size, target_size, optimize, use_camera):
@@ -76,37 +85,8 @@ def process(device, model, model_type, image, input_size, target_size, optimize,
 
     return prediction
 
-
-def create_side_by_side(image, depth, grayscale):
-    """
-    Take an RGB image and depth map and place them side by side. This includes a proper normalization of the depth map
-    for better visibility.
-
-    Args:
-        image: the RGB image
-        depth: the depth map
-        grayscale: use a grayscale colormap?
-
-    Returns:
-        the image and depth map place side by side
-    """
-    depth_min = depth.min()
-    depth_max = depth.max()
-    normalized_depth = 255 * (depth - depth_min) / (depth_max - depth_min)
-    normalized_depth *= 3
-
-    right_side = np.repeat(np.expand_dims(normalized_depth, 2), 3, axis=2) / 3
-    if not grayscale:
-        right_side = cv2.applyColorMap(np.uint8(right_side), cv2.COLORMAP_INFERNO)
-
-    if image is None:
-        return right_side
-    else:
-        return np.concatenate((image, right_side), axis=1)
-
-
-def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side=False, height=None,
-        square=False, grayscale=False):
+def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, height=None,
+        square=False):
     """Run MonoDepthNN to compute depth maps.
 
     Args:
@@ -114,10 +94,8 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side
         model_path (str): path to saved model
         model_type (str): the model type
         optimize (bool): optimize the model to half-floats on CUDA?
-        side (bool): RGB and depth side by side in output images?
         height (int): inference encoder image height
         square (bool): resize to a square resolution?
-        grayscale (bool): use a grayscale colormap?
     """
     colour = None
     width = None
@@ -130,7 +108,7 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side
 
     if image is not None:
         # input
-        original_image_rgb = utils_midas.read_image(image)  # in [0, 1]
+        original_image_rgb = read_image(image=image)  # in [0, 1]
         image_t = transform({"image": original_image_rgb})["image"]
 
         # compute
@@ -156,6 +134,7 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, side
                 # Compute the median depth from the valid values
                 median_depth = np.median(valid_depth_values)
                 print(f"The distance to the detected drone is approximately {median_depth:.2f} meters")
+                return median_depth
 
 
 if __name__ == "__main__":
