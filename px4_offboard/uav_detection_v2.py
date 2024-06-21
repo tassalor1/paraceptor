@@ -17,19 +17,11 @@ from simple_pid import PID
 
 import sys
 import os
-
-# Get the absolute path of the current script
 current_dir = os.path.dirname(os.path.abspath(__file__))
-
-# Get the absolute path of the parent directory
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-
-# Add the parent directory to the Python path
 sys.path.append(parent_dir)
-
-# Import the run function from midasModel.run
 from midasModel.run import run
-
+1
 class DepthDistance:
     def __init__(self, best_bbox, img) -> None:
         self.best_bbox = best_bbox
@@ -44,9 +36,9 @@ class DepthDistance:
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True
 
-    def slice_img(self):
+    def slice_img(self, img):
         best_bbox1 = list(map(int, self.best_bbox))
-        height, width = self.img.shape[:2]
+        height, width = img.shape[:2]
         best_bbox2 = [
             max(0, min(best_bbox1[0], width)),
             max(0, min(best_bbox1[1], height)),
@@ -56,6 +48,9 @@ class DepthDistance:
         self.img_sliced = self.img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
 
     def run(self):
+    
+        self.slice_img(self.img)
+
         median_depth = run(
             image=self.img_sliced,
             output_path='/home/connor/paraceptor/MiDaS/output/',
@@ -84,9 +79,10 @@ class CVProcessor:
         results = self.model(masked_image)
         img = np.copy(results.render()[0])
 
-        recon_centroid_x, recon_centroid_y, highest_conf, best_bbox = self.get_centroid(results, height, width,)
-
+        recon_centroid_x, recon_centroid_y, highest_conf, best_bbox = self.get_centroid(results, height, width)
+        
         if recon_centroid_x is not None and recon_centroid_y is not None:
+
             # depth model
             depth_model = DepthDistance(best_bbox=best_bbox, img=img)
             median_depth = depth_model.run()
@@ -100,7 +96,7 @@ class CVProcessor:
             self.draw_annotations(img, height, width, 
                                   recon_centroid_x, recon_centroid_y, median_depth)
 
-            return img, velocity_x, velocity_y, highest_conf, best_bbox, median_depth
+            return img, velocity_x, velocity_y, highest_conf
         
         return img, None, None, None
 
@@ -200,7 +196,7 @@ class ImageSubscriber(Node):
 
     def listener_callback(self, data):
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        img, velocity_x, velocity_y, highest_conf, median_depth = self.cv_processor.process_image(current_frame, self.current_yaw)
+        img, velocity_x, velocity_y, highest_conf, = self.cv_processor.process_image(current_frame, self.current_yaw)
 
         if velocity_x is not None and velocity_y is not None:
             twist = TrajectorySetpoint()

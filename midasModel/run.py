@@ -4,9 +4,8 @@
 import torch
 import cv2
 import numpy as np
-
-from midas.model_loader import default_models, load_model
-from cv_processor import CVProcessor
+from midasModel.midas.model_loader import default_models, load_model
+# from cv_processor import CVProcessor
 
 
 
@@ -137,42 +136,42 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
                 return median_depth
 
 
-if __name__ == "__main__":
+# if __name__ == "__main__":
 
-    cv = CVProcessor()
-    current_frame = cv2.imread("/home/connor/cv_drone/MiDaS/input/960.jpg")
-    img, highest_conf, best_bbox = cv.process_image(current_frame=current_frame)
+#     cv = CVProcessor()
+#     current_frame = cv2.imread("/home/connor/cv_drone/MiDaS/input/960.jpg")
+#     img, highest_conf, best_bbox = cv.process_image(current_frame=current_frame)
 
-    best_bbox1 = list(map(int, best_bbox))
-    height, width = img.shape[:2]
-    best_bbox2 = [
-        max(0, min(best_bbox1[0], width)),
-        max(0, min(best_bbox1[1], height)),
-        max(0, min(best_bbox1[2], width)),
-        max(0, min(best_bbox1[3], height))
-    ]
-    img_sliced = img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
-    # if img_sliced.size > 0:
-    #     cv2.imshow('Detected Frame', img_sliced)
-    #     cv2.waitKey(0)
-    #     cv2.destroyAllWindows()
-    # else:
-    #     print("Resulting image is empty. Cannot display.")
+#     best_bbox1 = list(map(int, best_bbox))
+#     height, width = img.shape[:2]
+#     best_bbox2 = [
+#         max(0, min(best_bbox1[0], width)),
+#         max(0, min(best_bbox1[1], height)),
+#         max(0, min(best_bbox1[2], width)),
+#         max(0, min(best_bbox1[3], height))
+#     ]
+#     img_sliced = img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
+#     # if img_sliced.size > 0:
+#     #     cv2.imshow('Detected Frame', img_sliced)
+#     #     cv2.waitKey(0)
+#     #     cv2.destroyAllWindows()
+#     # else:
+#     #     print("Resulting image is empty. Cannot display.")
 
-    default_models = {
-        'dpt_swin2_tiny_256': '/home/connor/cv_drone/MiDaS/weights/dpt_swin2_tiny_256.pt',
-    }
+#     default_models = {
+#         'dpt_swin2_tiny_256': '/home/connor/cv_drone/MiDaS/weights/dpt_swin2_tiny_256.pt',
+#     }
 
-    # Set torch options
-    torch.backends.cudnn.enabled = True
-    torch.backends.cudnn.benchmark = True
+#     # Set torch options
+#     torch.backends.cudnn.enabled = True
+#     torch.backends.cudnn.benchmark = True
 
-    run(image=img_sliced,
-        output_path='/home/connor/paraceptor/MiDaS/output/',
-        model_path=default_models['dpt_swin2_tiny_256'],
-        model_type='dpt_swin2_tiny_256',
-        optimize=True,
-        side=False,
-        height=256,
-        square=True,
-        grayscale=False)
+#     run(image=img_sliced,
+#         output_path='/home/connor/paraceptor/MiDaS/output/',
+#         model_path=default_models['dpt_swin2_tiny_256'],
+#         model_type='dpt_swin2_tiny_256',
+#         optimize=True,
+#         side=False,
+#         height=256,
+#         square=True,
+#         grayscale=False)

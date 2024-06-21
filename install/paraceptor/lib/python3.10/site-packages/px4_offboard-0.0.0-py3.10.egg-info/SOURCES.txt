@@ -23,10 +23,6 @@ px4_offboard/pid_control.py
 px4_offboard/recon_drone_path.py
 px4_offboard/uav_camera_det.py
 px4_offboard/uav_detection_v2.py
-px4_offboard/velocity_control.py
 px4_offboard/visualizer.py
 resource/px4_offboard
 resource/visualize.rviz
-test/test_copyright.py
-test/test_flake8.py
-test/test_pep257.py
