@@ -21,16 +21,11 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 from midasModel.run import run
-1
+
 class DepthDistance:
     def __init__(self, best_bbox, img) -> None:
         self.best_bbox = best_bbox
         self.img = img
-
-
-        self.default_models = {
-        'dpt_swin2_tiny_256': '/home/connor/cv_drone/MiDaS/weights/dpt_swin2_tiny_256.pt',
-        }
 
 
         torch.backends.cudnn.enabled = True
@@ -45,21 +40,23 @@ class DepthDistance:
             max(0, min(best_bbox1[2], width)),
             max(0, min(best_bbox1[3], height))
         ]
-        self.img_sliced = self.img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
+        return self.img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
 
-    def run(self):
-    
-        self.slice_img(self.img)
+    def run_model(self):
+        default_models = {
+        'dpt_swin2_tiny_256': 'midasModel/weights/dpt_swin2_tiny_256.pt',
+        }
+        sliced_img = self.slice_img(self.img)
 
-        median_depth = run(
-            image=self.img_sliced,
-            output_path='/home/connor/paraceptor/MiDaS/output/',
-            model_path=self.default_models['dpt_swin2_tiny_256'],
-            model_type='dpt_swin2_tiny_256',
-            optimize=True,
-            height=256,
-            square=True,
-            )
+        # Set torch options
+        torch.backends.cudnn.enabled = True
+        torch.backends.cudnn.benchmark = True
+        
+        median_depth = run(image=sliced_img,
+        model_path=default_models['dpt_swin2_tiny_256'],
+        model_type='dpt_swin2_tiny_256',
+        )
+
         return median_depth
     
 class CVProcessor:
@@ -73,28 +70,31 @@ class CVProcessor:
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
     def process_image(self, current_frame, current_yaw):
+        median_depth = None
+
         height, width, _ = current_frame.shape
         mask = self.create_mask(height, width)
         masked_image = cv2.bitwise_and(current_frame, current_frame, mask=mask)
         results = self.model(masked_image)
         img = np.copy(results.render()[0])
-
+ 
         recon_centroid_x, recon_centroid_y, highest_conf, best_bbox = self.get_centroid(results, height, width)
+
+        # depth model
+        if best_bbox is not None:
+            depth_model = DepthDistance(best_bbox=best_bbox, img=img)
+            median_depth = depth_model.run_model()
+
+        self.draw_annotations(img, height, width, 
+                                recon_centroid_x, recon_centroid_y, median_depth)
         
         if recon_centroid_x is not None and recon_centroid_y is not None:
-
-            # depth model
-            depth_model = DepthDistance(best_bbox=best_bbox, img=img)
-            median_depth = depth_model.run()
 
             error_x = recon_centroid_x - width / 2
             error_y = recon_centroid_y - height / 2
 
             velocity_x = self.pid_x(error_x)
             velocity_y = self.pid_y(error_y)
-
-            self.draw_annotations(img, height, width, 
-                                  recon_centroid_x, recon_centroid_y, median_depth)
 
             return img, velocity_x, velocity_y, highest_conf
         
@@ -111,7 +111,7 @@ class CVProcessor:
         return mask
 
     def get_centroid(self, results, height, width):
-        highest_conf = 7.5
+        highest_conf = 0.75
         best_centroid_x, best_centroid_y = None, None
         best_bbox = None
         for bbox in results.xyxy[0].cpu().numpy():
@@ -128,18 +128,18 @@ class CVProcessor:
         return best_centroid_x, best_centroid_y, highest_conf, best_bbox
 
     def draw_annotations(self, img, height, width, 
-                     recon_centroid_x, recon_centroid_y, 
-                     median_depth):
+                        recon_centroid_x, recon_centroid_y, median_depth=None):
         
         cv2.circle(img, (recon_centroid_x, recon_centroid_y), 5, (0, 0, 255), -1)
         cv2.line(img, (int(width / 2), int(height / 2)), (recon_centroid_x, recon_centroid_y), (0, 255, 0), 2)
         cv2.putText(img, 'Recon Drone Detected', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
 
-        text = f'Median Depth: {median_depth:.2f}'
-        text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
-        text_x = width - text_size[0] - 10 
-        text_y = height - 10  
-        cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
+        if median_depth:
+            text = f'Median Depth: {median_depth:.2f}'
+            text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
+            text_x = width - text_size[0] - 10 
+            text_y = height - 10  
+            cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
 
 class ImageSubscriber(Node):
     def __init__(self):

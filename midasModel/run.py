@@ -1,6 +1,10 @@
 """Compute depth maps for images in the input folder.
 """
-
+import sys
+import os
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+sys.path.append(parent_dir)
 import torch
 import cv2
 import numpy as np
@@ -18,11 +22,11 @@ def read_image(image):
     Returns:
         array: RGB image (0-1)
     """
-    if img.ndim == 2:
-        img = cv2.cvtColor(img, cv2.COLOR_GRAY2BGR)
+    if image.ndim == 2:
+        image = cv2.cvtColor(image, cv2.COLOR_GRAY2BGR)
 
-    img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB) / 255.0
-    return img
+    image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB) / 255.0
+    return image
 
 first_execution = True
 def process(device, model, model_type, image, input_size, target_size, optimize, use_camera):
@@ -103,7 +107,13 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
     # select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print("Device: %s" % device)
-    model, transform, net_w, net_h = load_model(device, model_path, model_type, optimize, height, square)
+    try:
+        model, transform, net_w, net_h = load_model(device, model_path, model_type, optimize, height, square)
+    except Exception as e:
+        print(f"Error loading model: {e}")
+        print(f"Model path: {model_path}")
+        print(f"Model type: {model_type}")
+        raise  # Re-raise the exception after printing debug info
 
     if image is not None:
         # input
@@ -135,22 +145,22 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
                 print(f"The distance to the detected drone is approximately {median_depth:.2f} meters")
                 return median_depth
 
-
 # if __name__ == "__main__":
 
 #     cv = CVProcessor()
-#     current_frame = cv2.imread("/home/connor/cv_drone/MiDaS/input/960.jpg")
+#     image_path = 'midasModel/input/1.JPEG' 
+#     current_frame = cv2.imread(image_path)
 #     img, highest_conf, best_bbox = cv.process_image(current_frame=current_frame)
 
-#     best_bbox1 = list(map(int, best_bbox))
-#     height, width = img.shape[:2]
-#     best_bbox2 = [
-#         max(0, min(best_bbox1[0], width)),
-#         max(0, min(best_bbox1[1], height)),
-#         max(0, min(best_bbox1[2], width)),
-#         max(0, min(best_bbox1[3], height))
-#     ]
-#     img_sliced = img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
+#     # best_bbox1 = list(map(int, best_bbox))
+#     # height, width = img.shape[:2]
+#     # best_bbox2 = [
+#     #     max(0, min(best_bbox1[0], width)),
+#     #     max(0, min(best_bbox1[1], height)),
+#     #     max(0, min(best_bbox1[2], width)),
+#     #     max(0, min(best_bbox1[3], height))
+#     # ]
+#     # img_sliced = img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
 #     # if img_sliced.size > 0:
 #     #     cv2.imshow('Detected Frame', img_sliced)
 #     #     cv2.waitKey(0)
@@ -159,19 +169,15 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
 #     #     print("Resulting image is empty. Cannot display.")
 
 #     default_models = {
-#         'dpt_swin2_tiny_256': '/home/connor/cv_drone/MiDaS/weights/dpt_swin2_tiny_256.pt',
+#         'dpt_swin2_tiny_256': 'midasModel/weights/dpt_swin2_tiny_256.pt',
+#         'dpt_levit_224': 'midasModel/weights/dpt_levit_224.pt'
 #     }
 
 #     # Set torch options
 #     torch.backends.cudnn.enabled = True
 #     torch.backends.cudnn.benchmark = True
-
-#     run(image=img_sliced,
-#         output_path='/home/connor/paraceptor/MiDaS/output/',
+#     image = 'midasModel/1.JPEG'
+#     run(image=img,
 #         model_path=default_models['dpt_swin2_tiny_256'],
 #         model_type='dpt_swin2_tiny_256',
-#         optimize=True,
-#         side=False,
-#         height=256,
-#         square=True,
-#         grayscale=False)
+# )

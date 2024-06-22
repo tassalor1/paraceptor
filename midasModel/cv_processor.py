@@ -4,7 +4,7 @@ import cv2
 
 class CVProcessor:
     def __init__(self):
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='/home/connor/cv_drone/yolov5/weights/best.pt')
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
     def process_image(self, current_frame):
         height, width, _ = current_frame.shape
