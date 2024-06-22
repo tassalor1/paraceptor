@@ -106,11 +106,11 @@ class DroneSubscriber(Node):
             if len(self.measurements) > 10:  # Start processing after collecting enough measurements
                 self.optimize_kalman_filter()
             updated_state = self.kalman_filter.update(measurement)
-            self.get_logger().info(f'Received Point: x={msg.x}, y={msg.y}, z={msg.z}')
+            # self.get_logger().info(f'Received Point: x={msg.x}, y={msg.y}, z={msg.z}')
             
             # Next step prediction
             next_step_prediction = self.kalman_filter.predict_future(1)
-            self.get_logger().info(f'Next Step Prediction: {next_step_prediction}')
+            # self.get_logger().info(f'Next Step Prediction: {next_step_prediction}')
 
             # Publish the predicted position 5 seconds into the future
             future_point = Point()
@@ -118,7 +118,7 @@ class DroneSubscriber(Node):
             future_prediction = self.kalman_filter.predict_future(self.future_steps)
             future_point.x, future_point.y, future_point.z = future_prediction
             self.predicted_ppos_pub.publish(future_point)
-            self.get_logger().info(f'Prediction {self.future_seconds} seconds into the future: {future_prediction}')
+            # self.get_logger().info(f'Prediction {self.future_seconds} seconds into the future: {future_prediction}')
 
             self.start_time = current_time
 
@@ -127,7 +127,7 @@ class DroneSubscriber(Node):
         result = minimize(cost_function, initial_params, args=(self.measurements, self.dt, self.future_steps), bounds=[(0.001, 10), (0.001, 10)])
         optimized_R_std, optimized_Q_std = result.x
         self.kalman_filter = DroneKalmanFilter(dt=self.dt, R_std=optimized_R_std, Q_std=optimized_Q_std)
-        self.get_logger().info(f'Optimized R_std: {optimized_R_std}, Optimized Q_std: {optimized_Q_std}')
+        # self.get_logger().info(f'Optimized R_std: {optimized_R_std}, Optimized Q_std: {optimized_Q_std}')
 
 def main(args=None):
     rclpy.init(args=args)
