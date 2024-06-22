@@ -81,10 +81,10 @@ class ReconControl(Node):
             arm_command.confirmation = 0  # no further confirmation
             arm_command.from_external = True
             self.vehicle_command_publisher_.publish(arm_command)
-            self.get_logger().info('RECON Vehicle armed.')
+            # self.get_logger().info('RECON Vehicle armed.')
 
     def vehicle_status_callback(self, msg):
-        self.get_logger().info(f"RECON NAV_STATUS: {msg.nav_state} - offboard status: {VehicleStatus.NAVIGATION_STATE_OFFBOARD}")
+        # self.get_logger().info(f"RECON NAV_STATUS: {msg.nav_state} - offboard status: {VehicleStatus.NAVIGATION_STATE_OFFBOARD}")
         self.nav_state = msg.nav_state
         self.arming_state = msg.arming_state
     
