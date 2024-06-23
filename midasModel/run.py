@@ -9,7 +9,7 @@ import torch
 import cv2
 import numpy as np
 from midasModel.midas.model_loader import default_models, load_model
-# from cv_processor import CVProcessor
+from cv_processor import CVProcessor
 
 
 
@@ -88,8 +88,56 @@ def process(device, model, model_type, image, input_size, target_size, optimize,
 
     return prediction
 
+def show_depth(prediction, depth, bits=1):
+    """Show depth map using OpenCV.
+
+    Args:
+        depth (array): depth
+    """
+
+    bits = 1
+
+    if not np.isfinite(prediction).all():
+        prediction = np.nan_to_num(prediction, nan=0.0, posinf=0.0, neginf=0.0)
+        print("WARNING: Non-finite depth values present")
+
+    depth_min = prediction.min()
+    depth_max = prediction.max()
+
+    max_val = (2**(8*bits)) - 1
+
+    if depth_max - depth_min > np.finfo("float").eps:
+        out = max_val * (prediction - depth_min) / (depth_max - depth_min)
+    else:
+        out = np.zeros(prediction.shape, dtype=prediction.dtype)
+
+
+    out = cv2.applyColorMap(np.uint8(out), cv2.COLORMAP_INFERNO)
+    text = f'Depth: {depth:.2f}'
+    text_x = 50
+    text_y = 100
+    cv2.putText(out, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+    cv2.imshow('Depth Map', out.astype("uint8" if bits == 1 else "uint16"))
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return
+
+alpha = 0.2
+previous_depth = 0.0
+def apply_ema_filter(current_depth, alpha=0.2):
+    """Apply an exponential moving average filter."""
+    global previous_depth
+    filtered_depth = alpha * current_depth + (1 - alpha) * previous_depth
+    previous_depth = filtered_depth
+    return filtered_depth
+
+def depth_to_distance(depth_value, depth_scale=1.0):
+    """Convert depth value to distance."""
+    return 1.0 / (depth_value * depth_scale)
+
 def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, height=None,
-        square=False):
+        square=False, trial=False):
     """Run MonoDepthNN to compute depth maps.
 
     Args:
@@ -103,17 +151,16 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
     colour = None
     width = None
     height = None
-
+    global previous_depth
     # select device
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print("Device: %s" % device)
     try:
         model, transform, net_w, net_h = load_model(device, model_path, model_type, optimize, height, square)
     except Exception as e:
         print(f"Error loading model: {e}")
         print(f"Model path: {model_path}")
         print(f"Model type: {model_type}")
-        raise  # Re-raise the exception after printing debug info
+        raise  
 
     if image is not None:
         # input
@@ -135,49 +182,38 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
             if len(valid_depth_values) == 0:
                 print("No valid depth values found in the depth map")
             else:
-                print(f"Depth Map Statistics:")
-                print(f"Min Depth: {np.min(valid_depth_values)}")
-                print(f"Max Depth: {np.max(valid_depth_values)}")
-                print(f"Mean Depth: {np.mean(valid_depth_values)}")
-                print(f"Median Depth: {np.median(valid_depth_values)}")
                 # Compute the median depth from the valid values
                 median_depth = np.median(valid_depth_values)
-                print(f"The distance to the detected drone is approximately {median_depth:.2f} meters")
+                smoothed_depth = apply_ema_filter(median_depth)
+                distance = depth_to_distance(smoothed_depth)
+                if trial:
+                    show_depth(prediction, distance, bits=2)
                 return median_depth
+            
 
-# if __name__ == "__main__":
+                
 
-#     cv = CVProcessor()
-#     image_path = 'midasModel/input/1.JPEG' 
-#     current_frame = cv2.imread(image_path)
-#     img, highest_conf, best_bbox = cv.process_image(current_frame=current_frame)
+if __name__ == "__main__":
 
-#     # best_bbox1 = list(map(int, best_bbox))
-#     # height, width = img.shape[:2]
-#     # best_bbox2 = [
-#     #     max(0, min(best_bbox1[0], width)),
-#     #     max(0, min(best_bbox1[1], height)),
-#     #     max(0, min(best_bbox1[2], width)),
-#     #     max(0, min(best_bbox1[3], height))
-#     # ]
-#     # img_sliced = img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
-#     # if img_sliced.size > 0:
-#     #     cv2.imshow('Detected Frame', img_sliced)
-#     #     cv2.waitKey(0)
-#     #     cv2.destroyAllWindows()
-#     # else:
-#     #     print("Resulting image is empty. Cannot display.")
+    # TODO add bounding box to compute acutal distance depth
 
-#     default_models = {
-#         'dpt_swin2_tiny_256': 'midasModel/weights/dpt_swin2_tiny_256.pt',
-#         'dpt_levit_224': 'midasModel/weights/dpt_levit_224.pt'
-#     }
 
-#     # Set torch options
-#     torch.backends.cudnn.enabled = True
-#     torch.backends.cudnn.benchmark = True
-#     image = 'midasModel/1.JPEG'
-#     run(image=img,
-#         model_path=default_models['dpt_swin2_tiny_256'],
-#         model_type='dpt_swin2_tiny_256',
-# )
+    cv = CVProcessor()
+    image_path = 'midasModel/input/934.jpg' 
+    current_frame = cv2.imread(image_path)
+    img, highest_conf, best_bbox = cv.process_image(current_frame=current_frame)
+
+    default_models = {
+        'dpt_swin2_tiny_256': 'midasModel/weights/dpt_swin2_tiny_256.pt',
+        'dpt_levit_224': 'midasModel/weights/dpt_levit_224.pt'
+    }
+
+    # Set torch options
+    torch.backends.cudnn.enabled = True
+    torch.backends.cudnn.benchmark = True
+    image = 'midasModel/1.JPEG'
+    run(image=current_frame,
+        model_path=default_models['dpt_swin2_tiny_256'],
+        model_type='dpt_swin2_tiny_256',
+        trial=True
+)

@@ -18,6 +18,15 @@ Refer to doc for install
  * Take all files from worlds, go to "/PX4-Autopilot/Tools/simulation/gz/worlds"
  * Replace defualt.sdf in this location with the one you got from paraceptor
 
+## venv
+## Create venv
+```
+python -m venv paraceptor_env
+pip install -r paraceptor/requirements.txt
+```
+```
+source paraceptor_env/bin/activate
+```
 
 ## RUN MULTI DRONE
 ## Terminal 1 
@@ -40,6 +49,7 @@ cd ~/PX4-Autopilot
 source ~/PX4-Autopilot/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
+export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="7,0,0,0,0,0" PX4_SIM_MODEL=standard_vtol ./build/px4_sitl_default/bin/px4 -i 1
 ```
 
@@ -49,6 +59,7 @@ cd ~/PX4-Autopilot
 source ~/PX4-Autopilot/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
+export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" PX4_SIM_MODEL=x500_depth ./build/px4_sitl_default/bin/px4 -i 2
 ```
 

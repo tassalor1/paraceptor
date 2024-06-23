@@ -9,7 +9,6 @@ from scipy.optimize import minimize
 import time
 import numpy as np
 
-import matplotlib.pyplot as plt
 from threading import Thread
 
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy

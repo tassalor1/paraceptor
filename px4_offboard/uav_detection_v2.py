@@ -84,7 +84,7 @@ class CVProcessor:
         if best_bbox is not None:
             depth_model = DepthDistance(best_bbox=best_bbox, img=img)
             median_depth = depth_model.run_model()
-
+            
         self.draw_annotations(img, height, width, 
                                 recon_centroid_x, recon_centroid_y, median_depth)
         
@@ -130,16 +130,27 @@ class CVProcessor:
     def draw_annotations(self, img, height, width, 
                         recon_centroid_x, recon_centroid_y, median_depth=None):
         
-        cv2.circle(img, (recon_centroid_x, recon_centroid_y), 5, (0, 0, 255), -1)
-        cv2.line(img, (int(width / 2), int(height / 2)), (recon_centroid_x, recon_centroid_y), (0, 255, 0), 2)
-        cv2.putText(img, 'Recon Drone Detected', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
+        if recon_centroid_x:
+            cv2.circle(img, (recon_centroid_x, recon_centroid_y), 5, (0, 0, 255), -1)
+            cv2.line(img, (int(width / 2), int(height / 2)), (recon_centroid_x, recon_centroid_y), (0, 255, 0), 2)
+            cv2.putText(img, 'Recon Drone Detected', (50, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
 
-        if median_depth:
+        if median_depth is not None:
             text = f'Median Depth: {median_depth:.2f}'
-            text_size = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)[0]
-            text_x = width - text_size[0] - 10 
-            text_y = height - 10  
-            cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_4)
+        else:
+            text = 'Median Depth: Not available'
+
+        # Fixed position for median depth text
+        text_x = 50
+        text_y = 100
+
+        # Draw background rectangle for better visibility
+        (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
+        # cv2.rectangle(img, (text_x - 5, text_y - text_height - 5), (text_x + text_width + 5, text_y + 5), (0, 0, 0), -1)
+
+        # Draw the median depth text
+        cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+
 
 class ImageSubscriber(Node):
     def __init__(self):
