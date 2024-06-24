@@ -421,6 +421,6 @@ websocket-client==1.8.0
 Werkzeug==3.0.3
 widgetsnbextension==4.0.10
 wrapt==1.13.3
-wxPython==4.0.7
+# wxPython==4.0.7
 xacro==2.0.8
 xdg==5

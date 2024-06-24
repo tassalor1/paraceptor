@@ -1,4 +1,4 @@
-#!/usr/bin/python3
+#!/home/connor/paraceptor_env/bin/python3
 # EASY-INSTALL-ENTRY-SCRIPT: 'px4-offboard==0.0.0','console_scripts','offboard_base_comm'
 import re
 import sys

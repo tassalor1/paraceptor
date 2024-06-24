@@ -191,11 +191,14 @@ def run(image, model_path, model_type="dpt_swin2_tiny_256", optimize=False, heig
                 return median_depth
             
 
-                
 
+    length = 8.1               
+    width = 16
+    height = 3.1
 if __name__ == "__main__":
 
-    # TODO add bounding box to compute acutal distance depth
+    # TODO compute actual distance on bounding box
+    # https://medium.com/artificialis/getting-started-with-depth-estimation-using-midas-and-python-d0119bfe1159
 
 
     cv = CVProcessor()
