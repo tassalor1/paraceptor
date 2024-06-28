@@ -18,15 +18,6 @@ Refer to doc for install
  * Take all files from worlds, go to "/PX4-Autopilot/Tools/simulation/gz/worlds"
  * Replace defualt.sdf in this location with the one you got from paraceptor
 
-## venv
-## Create venv
-```
-python -m venv paraceptor_env
-pip install -r paraceptor/requirements.txt
-```
-```
-source paraceptor_env/bin/activate
-```
 
 ## RUN MULTI DRONE
 ## Terminal 1 
