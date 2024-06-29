@@ -12,11 +12,10 @@
 Refer to doc for install
 
 
-## For gazebo image detection world ##
- * Go to "gazebo_files" in the paraceptor repo
- * Take all files from models and input these into this folder "/PX4-Autopilot/Tools/simulation/gz/models"
- * Take all files from worlds, go to "/PX4-Autopilot/Tools/simulation/gz/worlds"
- * Replace defualt.sdf in this location with the one you got from paraceptor
+## For CV ros-gzgarden ##
+```
+sudo apt install ros-humble-ros-gzgarden
+```
 
 ## venv
 ## Create venv
