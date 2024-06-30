@@ -107,7 +107,7 @@ class LinearFlight(Node):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             if self.current_x < 748.0:
                 new_x = self.current_x 
-                new_y = self.current_y + 5.0 * 0.5
+                new_y = self.current_y + 7.0 * 0.5
                 new_z = self.current_z
 
                 yaw = np.arctan2(new_y, new_x)
@@ -128,6 +128,12 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+
+
+# TODO: 
+#       1.Check midas depth range on target - can it see it at current range?
+#       2.set up pipeline that obtains drones actual distance/ midas depth/ timestamp - lets also save midas images for review 
+#       3.setup some sort of analytics for midas and yolo model - i.e. plots showing detection/ inference speed/ precision/ compute used
 
 '''
 Camera gains visual of 100x100 yellow square 270ft away

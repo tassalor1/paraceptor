@@ -197,11 +197,14 @@ def load_model(device, model_path, model_type="dpt_large_384", optimize=True, he
     else:
         print(f"model_type '{model_type}' not implemented, use: --model_type large")
         assert False
-
-    if not "openvino" in model_type:
-        print("Model loaded, number of parameters = {:.0f}M".format(sum(p.numel() for p in model.parameters()) / 1e6))
-    else:
-        print("Model loaded, optimized with OpenVINO")
+    # # stop print happening every call 
+    # count = 0
+    # if count == 0:
+    #     if not "openvino" in model_type:
+    #         print("Model loaded, number of parameters = {:.0f}M".format(sum(p.numel() for p in model.parameters()) / 1e6))
+    #     else:
+    #         print("Model loaded, optimized with OpenVINO")
+    # count += 1
 
     if "openvino" in model_type:
         keep_aspect_ratio = False

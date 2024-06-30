@@ -1,29 +1,63 @@
 import rclpy 
-from rclpy.qos import (QoSProfile, QoSReliabilityPolicy, 
-                       QoSHistoryPolicy, QoSDurabilityPolicy)
+from rclpy.qos import QoSProfile
+from rclpy.qos import QoSReliabilityPolicy
+from rclpy.qos import QoSHistoryPolicy
+from rclpy.qos import QoSDurabilityPolicy
 from rclpy.node import Node 
 
 from sensor_msgs.msg import Image 
 from px4_msgs.msg import TrajectorySetpoint
-from geometry_msgs.msg import Twist
 from std_msgs.msg import Float32
 
 from cv_bridge import CvBridge 
 import cv2
+
 import torch
 import numpy as np
 
 from simple_pid import PID
-
 import sys
 import os
+
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
+
 from midasModel.run import run
 
+def process_depth_for_display(prediction, bits=1):
+    if not np.isfinite(prediction).all():
+        prediction = np.nan_to_num(prediction, nan=0.0, posinf=0.0, neginf=0.0)
+        print("WARNING: Non-finite depth values present")
+    
+    depth_min = prediction.min()
+    depth_max = prediction.max()
+    max_val = (2**(8*bits)) - 1
+    
+    if depth_max - depth_min > np.finfo("float").eps:
+        out = max_val * (prediction - depth_min) / (depth_max - depth_min)
+    else:
+        out = np.zeros(prediction.shape, dtype=prediction.dtype)
+    
+    out = cv2.applyColorMap(np.uint8(out), cv2.COLORMAP_INFERNO)
+    # cv2.putText(out, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+    
+    return out.astype("uint8" if bits == 1 else "uint16")
+def create_combined_image(img, depth_img, target_width=1500, target_height=540):
+    # Define the width for each half of the combined image
+    half_width = target_width // 2
+
+    # Resize both images to fit half of the target width while maintaining aspect ratio
+    img_resized = cv2.resize(img, (half_width, target_height))
+    depth_resized = cv2.resize(depth_img, (half_width, target_height))
+
+    # concat horizontallyt
+    combined_img = np.hstack((img_resized, depth_resized))
+
+    return combined_img
+
 class DepthDistance:
-    def __init__(self, best_bbox, img) -> None:
+    def __init__(self, img, best_bbox = None) -> None:
         self.best_bbox = best_bbox
         self.img = img
 
@@ -32,15 +66,27 @@ class DepthDistance:
         torch.backends.cudnn.benchmark = True
 
     def slice_img(self, img):
-        best_bbox1 = list(map(int, self.best_bbox))
         height, width = img.shape[:2]
-        best_bbox2 = [
-            max(0, min(best_bbox1[0], width)),
-            max(0, min(best_bbox1[1], height)),
-            max(0, min(best_bbox1[2], width)),
-            max(0, min(best_bbox1[3], height))
-        ]
-        return self.img[best_bbox2[1]:best_bbox2[3], best_bbox2[0]:best_bbox2[2]]
+        
+        if self.best_bbox is None:
+            # No bounding box available, crop to center
+            crop_size = 500
+            x_center = width // 2
+            y_center = height // 2
+            
+            x_min = max(0, x_center - crop_size // 2)
+            y_min = max(0, y_center - crop_size // 2)
+            x_max = min(width, x_center + crop_size // 2)
+            y_max = min(height, y_center + crop_size // 2)
+        else:
+            # Use the existing bounding box logic
+            best_bbox1 = list(map(int, self.best_bbox))
+            x_min = max(0, min(best_bbox1[0], width))
+            y_min = max(0, min(best_bbox1[1], height))
+            x_max = max(0, min(best_bbox1[2], width))
+            y_max = max(0, min(best_bbox1[3], height))
+        
+        return img[y_min:y_max, x_min:x_max]
 
     def run_model(self):
         default_models = {
@@ -52,21 +98,18 @@ class DepthDistance:
         torch.backends.cudnn.enabled = True
         torch.backends.cudnn.benchmark = True
         
-        median_depth = run(image=sliced_img,
+        median_depth, prediction = run(image=sliced_img,
         model_path=default_models['dpt_swin2_tiny_256'],
         model_type='dpt_swin2_tiny_256',
         )
 
-        return median_depth
+        return median_depth, prediction
     
 class CVProcessor:
-    def __init__(self, pid_x, pid_y, propeller_mask_height_ratio,
-                 propeller_mask_width_ratio, vertical_offset_ratio):
+    def __init__(self, pid_x, pid_y):
         self.pid_x = pid_x
         self.pid_y = pid_y
-        self.propeller_mask_height_ratio = propeller_mask_height_ratio
-        self.propeller_mask_width_ratio = propeller_mask_width_ratio
-        self.vertical_offset_ratio = vertical_offset_ratio
+        self.vertical_offset_ratio = 0.10
         self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
 
     def process_image(self, current_frame, current_yaw):
@@ -81,13 +124,12 @@ class CVProcessor:
         recon_centroid_x, recon_centroid_y, highest_conf, best_bbox = self.get_centroid(results, height, width)
 
         # depth model
-        if best_bbox is not None:
-            depth_model = DepthDistance(best_bbox=best_bbox, img=img)
-            median_depth = depth_model.run_model()
+        # if best_bbox is not None:
+        depth_model = DepthDistance(img=img, best_bbox=best_bbox)
+        median_depth, prediction = depth_model.run_model()
             
-        print(f"Calling draw_annotations with median_depth: {median_depth}")
-        self.draw_annotations(img, height, width, 
-                                recon_centroid_x, recon_centroid_y, median_depth)
+        self.draw_annotations(img, height, width, recon_centroid_x, 
+                              recon_centroid_y, median_depth)
         
         if recon_centroid_x is not None and recon_centroid_y is not None:
 
@@ -97,14 +139,14 @@ class CVProcessor:
             velocity_x = self.pid_x(error_x)
             velocity_y = self.pid_y(error_y)
 
-            return img, velocity_x, velocity_y, highest_conf
+            return img, velocity_x, velocity_y, highest_conf, prediction
         
-        return img, None, None, None
+        return img, None, None, None, prediction
 
     def create_mask(self, height, width):
         mask = np.ones((height, width), dtype=np.uint8) * 255
-        propeller_mask_height = int(height * self.propeller_mask_height_ratio)
-        propeller_mask_width = int(width * self.propeller_mask_width_ratio)
+        propeller_mask_height = int(height * 0.20)
+        propeller_mask_width = int(width * 0.20)
         vertical_offset = int(height * self.vertical_offset_ratio)
 
         mask[vertical_offset:vertical_offset + propeller_mask_height, -propeller_mask_width:] = 0
@@ -141,16 +183,7 @@ class CVProcessor:
         else:
             text = 'Median Depth: Not available'
 
-        # Fixed position for median depth text
-        text_x = 50
-        text_y = 100
-
-        # Draw background rectangle for better visibility
-        (text_width, text_height), _ = cv2.getTextSize(text, cv2.FONT_HERSHEY_SIMPLEX, 1, 2)
-        # cv2.rectangle(img, (text_x - 5, text_y - text_height - 5), (text_x + text_width + 5, text_y + 5), (0, 0, 0), -1)
-
-        # Draw the median depth text
-        cv2.putText(img, text, (text_x, text_y), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
+        cv2.putText(img, text, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
 
 
 class ImageSubscriber(Node):
@@ -189,26 +222,30 @@ class ImageSubscriber(Node):
         self.current_yaw = 0.0
         self.br = CvBridge()
 
-        # Initialize PID controllers
+        # Initialise PID controllers
         pid_x = PID(1.0, 0.1, 0.05, setpoint=0)
         pid_y = PID(1.0, 0.1, 0.05, setpoint=0)
         pid_x.output_limits = (-1, 1)
         pid_y.output_limits = (-1, 1)
 
-        # Parameters for masking
-        propeller_mask_height_ratio = 0.20
-        propeller_mask_width_ratio = 0.20
-        vertical_offset_ratio = 0.10
-
-        self.cv_processor = CVProcessor(pid_x, pid_y, propeller_mask_height_ratio, 
-                                        propeller_mask_width_ratio, vertical_offset_ratio)
+        self.cv_processor = CVProcessor(pid_x, pid_y)
 
     def get_inteceptor_trajectory(self, msg):
         self.current_yaw = msg.yaw
 
     def listener_callback(self, data):
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        img, velocity_x, velocity_y, highest_conf, = self.cv_processor.process_image(current_frame, self.current_yaw)
+        img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
+
+        # Process depth image for imshow
+        depth_img = process_depth_for_display(prediction)
+
+        # Create the combined image
+        combined_img = create_combined_image(img, depth_img)
+
+        # Display the combined image
+        cv2.imshow('Detected Frame', combined_img)
+        cv2.waitKey(1)
 
         if velocity_x is not None and velocity_y is not None:
             twist = TrajectorySetpoint()
@@ -226,8 +263,6 @@ class ImageSubscriber(Node):
             conf_data.data = 0.0
             self.model_confidence.publish(conf_data)
 
-        cv2.imshow('Detected Frame', img)
-        cv2.waitKey(1)
 
 def main(args=None):
     rclpy.init(args=args)
