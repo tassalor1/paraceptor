@@ -43,7 +43,8 @@ def process_depth_for_display(prediction, bits=1):
     # cv2.putText(out, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
     
     return out.astype("uint8" if bits == 1 else "uint16")
-def create_combined_image(img, depth_img, target_width=1500, target_height=540):
+
+def create_combined_image(img, depth_img, target_width=1300, target_height=440):
     # Define the width for each half of the combined image
     half_width = target_width // 2
 
@@ -51,7 +52,7 @@ def create_combined_image(img, depth_img, target_width=1500, target_height=540):
     img_resized = cv2.resize(img, (half_width, target_height))
     depth_resized = cv2.resize(depth_img, (half_width, target_height))
 
-    # concat horizontallyt
+    # concat horizontally
     combined_img = np.hstack((img_resized, depth_resized))
 
     return combined_img
@@ -70,7 +71,7 @@ class DepthDistance:
         
         if self.best_bbox is None:
             # No bounding box available, crop to center
-            crop_size = 650
+            crop_size = 450
             x_center = width // 2
             y_center = height // 2
             
@@ -78,6 +79,7 @@ class DepthDistance:
             y_min = max(0, y_center - crop_size // 2)
             x_max = min(width, x_center + crop_size // 2)
             y_max = min(height, y_center + crop_size // 2)
+            print(" Centre of image midas depth")
         else:
             # Use the existing bounding box logic
             best_bbox1 = list(map(int, self.best_bbox))
@@ -85,6 +87,7 @@ class DepthDistance:
             y_min = max(0, min(best_bbox1[1], height))
             x_max = max(0, min(best_bbox1[2], width))
             y_max = max(0, min(best_bbox1[3], height))
+            print(" best box midas depth")
         
         return img[y_min:y_max, x_min:x_max]
 
@@ -273,3 +276,7 @@ def main(args=None):
 
 if __name__ == '__main__':
     main()
+# TODO: 
+#       1.Detect yellow square with cv2 and input the slcied img
+#       2.set up pipeline that obtains drones actual distance/ midas depth/ timestamp - lets also save midas images for review 
+#       3.setup some sort of analytics for midas and yolo model - i.e. plots showing detection/ inference speed/ precision/ compute used
