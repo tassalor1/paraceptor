@@ -4,7 +4,6 @@ imutils==0.5.4
 timm==0.6.12
 einops==0.6.0
 absl-py==2.1.0
-ackermann-msgs==2.0.2
 action-msgs==1.2.1
 action-tutorials-interfaces==0.20.3
 action-tutorials-py==0.20.3
