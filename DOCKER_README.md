@@ -2,10 +2,10 @@ Prerequsiteis
  * Run for GUI in docker `xhost +local:docker`
 
  * Run the docker image
- * cd into PX4 in docker and build it `docker exec -it blissful_tesla bash -c "cd /PX4-Autopilot && make px4_sitl_default"`
+  * Run `docker ps` - you should see `Name`
+   * Take this `Name` and replce with [container_name] in each command
+ * cd into PX4 in docker and build it `docker exec -it [container_name] bash -c "cd /PX4-Autopilot && make px4_sitl_default"`
 
- * Run `docker ps` - you should see `Name`
- * Take this `Name` and replce with [container_name] in each command
 
 # Run Docker Image
 ```
