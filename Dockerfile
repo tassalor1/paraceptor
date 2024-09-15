@@ -43,7 +43,8 @@ RUN apt-get update && apt-get install -y \
     ros-humble-sensor-msgs \
     ros-humble-gazebo-ros-pkgs \
     ros-humble-rmw-fastrtps-cpp \
-    ros-humble-ros-gz-bridge
+    ros-humble-ros-gz-bridge \
+    ros-humble-ros-gz-image
 
 # Install PX4 dependencies
 RUN apt-get install -y \
@@ -59,6 +60,9 @@ RUN apt-get install -y \
 # Clone PX4-Autopilot
 RUN git clone https://github.com/PX4/PX4-Autopilot.git --recursive
 RUN bash PX4-Autopilot/Tools/setup/ubuntu.sh --no-nuttx
+
+# Build PX4 SITL 
+RUN cd PX4-Autopilot && make px4_sitl_default
 
 # Install QGroundControl dependencies
 RUN apt-get install -y \

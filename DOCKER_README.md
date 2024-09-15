@@ -15,16 +15,17 @@ docker run -it --network host --privileged -e DISPLAY=$DISPLAY -v /tmp/.X11-unix
 # RUN MULTI DRONE
 ## Terminal 1 
 ```
-docker exec -it [container_name] -c "source /opt/ros/humble/setup.bash && cd /microros_ws && source install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0"
+docker exec -it agitated_buck bash -c "source /opt/ros/humble/setup.bash && cd /microros_ws && source install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0"
+
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-docker exec -it [container_name] bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run ros_gz_image image_bridge /camera"
+docker exec -it agitated_buck  bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run ros_gz_image image_bridge /camera"
 ```
 
 ## Terminal 3 Drone 1 Recon
 ```
-docker exec -it [container_name] bash -c "cd /PX4-Autopilot && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && export GZ_SIM_RESOURCE_PATH=/PX4-Autopilot/Tools/sitl_gazebo/models && PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='7,0,0,0,0,0' PX4_SIM_MODEL=1040_gazebo-classic_standard_vtol ./build/px4_sitl_default/bin/px4 -i 1"
+docker exec -it agitated_buck  bash -c "export GZ_SIM_RESOURCE_PATH=/PX4-Autopilot/Tools/sitl_gazebo/models && export XDG_RUNTIME_DIR=/tmp/runtime-root && mkdir -p $XDG_RUNTIME_DIR && chmod 700 $XDG_RUNTIME_DIR && cd /PX4-Autopilot && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='7,0,0,0,0,0' PX4_SIM_MODEL=1040_gazebo-classic_standard_vtol ./build/px4_sitl_default/bin/px4 -i 1"
 ```
 
 ## Terminal 4 Drone 2 Inteceptor
