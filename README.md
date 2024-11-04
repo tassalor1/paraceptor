@@ -39,6 +39,7 @@ ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
 ```
+source /opt/ros/humble/setup.bash
 ros2 run ros_gz_image image_bridge /camera
 ```
 
@@ -46,6 +47,7 @@ ros2 run ros_gz_image image_bridge /camera
 ```
 cd ~/PX4-Autopilot
 source ~/PX4-Autopilot/install/setup.bash
+export PATH=$PATH:~/PX4-Autopilot/build/px4_sitl_default/bin
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
@@ -77,7 +79,7 @@ source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 source ../px4_ros_com_ws/src/install/setup.bash
-python px4_offboard/uav_detection_v2.py
+python3 px4_offboard/uav_detection_v2.py
 ```
 You may have to replace the path to best_fixed.pt in line 27 of the uav_detection_v2.py, so that the path is appropriate to your local system. 
 ## Terminal 7
