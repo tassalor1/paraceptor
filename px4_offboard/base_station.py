@@ -80,10 +80,10 @@ class DroneSubscriber(Node):
         self.measurements = []
 
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
-            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-            depth=1
+            reliability=QoSReliabilityPolicy.RELIABLE,
+            durability=QoSDurabilityPolicy.VOLATILE,
+            history=QoSHistoryPolicy.KEEP_LAST,
+            depth=10
         )
 
         self.enemy_pos_sub = self.create_subscription(
@@ -93,7 +93,11 @@ class DroneSubscriber(Node):
             qos_profile
         )
 
-        self.predicted_ppos_pub = self.create_publisher(Point, '/px4_1/fmu/out/pred_pos_5_sec', qos_profile)
+        self.predicted_ppos_pub = self.create_publisher(
+            Point, 
+            '/px4_1/fmu/out/pred_pos_5_sec', 
+            qos_profile
+            )
 
         self.kalman_filter = DroneKalmanFilter(dt=self.dt, R_std=0.1, Q_std=0.01)
 

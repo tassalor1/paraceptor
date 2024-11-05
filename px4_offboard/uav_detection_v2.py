@@ -214,7 +214,7 @@ class ImageSubscriber(Node):
 
         self.inteceptor_velocity = self.create_publisher(
             TrajectorySetpoint,
-            'px4_2/fmu/in/trajectory_setpoint',
+            '/cv/trajectory_setpoint',
             qos_profile)
 
         self.model_confidence = self.create_publisher(
