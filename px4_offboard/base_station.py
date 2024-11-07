@@ -80,10 +80,10 @@ class DroneSubscriber(Node):
         self.measurements = []
 
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
-            durability=QoSDurabilityPolicy.VOLATILE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
         )
 
         self.enemy_pos_sub = self.create_subscription(

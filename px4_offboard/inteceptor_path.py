@@ -14,10 +14,10 @@ class InteceptorControl(Node):
         super().__init__('inteceptor')
 
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RELIABLE,
-            durability=QoSDurabilityPolicy.VOLATILE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=10
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
         )
 
 
@@ -106,7 +106,6 @@ class InteceptorControl(Node):
 
 
     def vehicle_status_callback(self, msg):
-        self.get_logger().info(f"INTERCEPTOR NAV_STATUS: {msg.nav_state} - ARMED_STATE: {msg.arming_state}")
         self.nav_state = msg.nav_state
         self.arming_state = msg.arming_state
 
@@ -118,6 +117,7 @@ class InteceptorControl(Node):
       
 
     def get_recon_coords(self, msg):
+        self.get_logger().info("Received predicted position message")
         self.recon_x = msg.x
         self.recon_y = msg.y
         self.recon_z = msg.z
@@ -215,7 +215,6 @@ class InteceptorControl(Node):
         self.current_z += direction_z * self.dt * speed_factor
 
     def cmdloop_callback(self):
-        self.get_logger().info("cmdloop_callback invoked")
         # Publish offboard control modes
         offboard_msg = OffboardControlMode()
         offboard_msg.timestamp = int(self.get_clock().now().nanoseconds / 1000)
@@ -229,9 +228,7 @@ class InteceptorControl(Node):
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
             self.get_logger().info("Vehicle is in OFFBOARD mode and ARMED.")
             self.follow_recon_from_home_station()
-        else:
-            self.get_logger().info("Waiting for vehicle to be in OFFBOARD mode and ARMED.")
-
+        
             # if self.recon_locked_on:
             #     self.follow_recon_from_cv()
             # else:

@@ -31,7 +31,18 @@ def generate_launch_description():
             namespace='base_station',
             executable= 'base_station',
             name = 'base_station'
-        )
+        ),
+        Node(
+            package='px4_offboard',
+            executable='uav_detection_v2',
+            output='screen'
+        ),
+        # Node(
+        #     package = 'px4_offboard',
+        #     namespace='base_station',
+        #     executable= 'linear_flight',
+        #     name = 'linear'
+        # )
         # Node(
         #     package='rviz2',
         #     namespace='',

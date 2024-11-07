@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 import rclpy 
 from rclpy.qos import QoSProfile
 from rclpy.qos import QoSReliabilityPolicy
@@ -23,7 +24,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
-from midasModel.run import run
+from px4_offboard.midasModel.run import run
 
 def process_depth_for_display(prediction, bits=1):
     if not np.isfinite(prediction).all():
@@ -195,27 +196,27 @@ class ImageSubscriber(Node):
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
-            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_VOLATILE,
             history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
             depth=1
         )
 
         self.subscription = self.create_subscription(
             Image,
-            'camera',
+            '/depth_camera',
             self.listener_callback,
-            1)
-
-        self.intecpetor_trajectory = self.create_subscription(
-            TrajectorySetpoint,
-            '/px4_2/fmu/in/trajectory_setpoint',
-            self.get_inteceptor_trajectory,
             qos_profile)
 
-        self.inteceptor_velocity = self.create_publisher(
-            TrajectorySetpoint,
-            '/cv/trajectory_setpoint',
-            qos_profile)
+        # self.intecpetor_trajectory = self.create_subscription(
+        #     TrajectorySetpoint,
+        #     '/px4_2/fmu/in/trajectory_setpoint',
+        #     self.get_inteceptor_trajectory,
+        #     qos_profile)
+
+        # self.inteceptor_velocity = self.create_publisher(
+        #     TrajectorySetpoint,
+        #     '/cv/trajectory_setpoint',
+        #     qos_profile)
 
         self.model_confidence = self.create_publisher(
             Float32,
@@ -233,10 +234,11 @@ class ImageSubscriber(Node):
 
         self.cv_processor = CVProcessor(pid_x, pid_y)
 
-    def get_inteceptor_trajectory(self, msg):
-        self.current_yaw = msg.yaw
+    # def get_inteceptor_trajectory(self, msg):
+    #     self.current_yaw = msg.yaw
 
     def listener_callback(self, data):
+        self.get_logger().info("Received image frame")
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
         img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
 
