@@ -60,8 +60,12 @@ cd ~/PX4-Autopilot
 source ~/PX4-Autopilot/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" PX4_SIM_MODEL=x500_mono_cam ./build/px4_sitl_default/bin/px4 -i 2
+export GZ_SIM_RESOURCE_PATH=/home/connor/paraceptor/models:/home/connor/paraceptor/worlds
+PX4_SYS_AUTOSTART=4001 \
+PX4_GZ_MODEL_POSE="0,0,0,0,0,0" \
+PX4_GZ_WORLD=small_city \
+PX4_SIM_MODEL=x500_mono_cam \
+./build/px4_sitl_default/bin/px4 -i 2
 ```
 
 ## Terminal 5 from home directory 
