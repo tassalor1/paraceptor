@@ -63,7 +63,7 @@ export PYTHONOPTIMIZE=1
 export GZ_SIM_RESOURCE_PATH=/home/connor/paraceptor/models:/home/connor/paraceptor/worlds
 PX4_SYS_AUTOSTART=4001 \
 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" \
-PX4_GZ_WORLD=small_city \
+PX4_GZ_WORLD=baylands \
 PX4_SIM_MODEL=x500_mono_cam \
 ./build/px4_sitl_default/bin/px4 -i 2
 ```
