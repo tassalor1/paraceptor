@@ -1,6 +1,0 @@
-source;share/paraceptor/hook/pythonpath.ps1
-source;share/paraceptor/hook/pythonpath.dsv
-source;share/paraceptor/hook/pythonpath.sh
-source;share/paraceptor/hook/ament_prefix_path.ps1
-source;share/paraceptor/hook/ament_prefix_path.dsv
-source;share/paraceptor/hook/ament_prefix_path.sh
