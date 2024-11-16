@@ -209,16 +209,16 @@ class ImageSubscriber(Node):
             self.listener_callback,
             qos_profile)
 
-        # self.intecpetor_trajectory = self.create_subscription(
-        #     TrajectorySetpoint,
-        #     '/px4_2/fmu/in/trajectory_setpoint',
-        #     self.get_inteceptor_trajectory,
-        #     qos_profile)
+        self.intecpetor_trajectory = self.create_subscription(
+            TrajectorySetpoint,
+            '/px4_2/fmu/in/trajectory_setpoint',
+            self.get_inteceptor_trajectory,
+            qos_profile)
 
-        # self.inteceptor_velocity = self.create_publisher(
-        #     TrajectorySetpoint,
-        #     '/cv/trajectory_setpoint',
-        #     qos_profile)
+        self.inteceptor_velocity = self.create_publisher(
+            TrajectorySetpoint,
+            '/cv/trajectory_setpoint',
+            qos_profile)
 
         self.model_confidence = self.create_publisher(
             Float32,
@@ -236,8 +236,8 @@ class ImageSubscriber(Node):
 
         self.cv_processor = CVProcessor(pid_x, pid_y)
 
-    # def get_inteceptor_trajectory(self, msg):
-    #     self.current_yaw = msg.yaw
+    def get_inteceptor_trajectory(self, msg):
+        self.current_yaw = msg.yaw
 
     def listener_callback(self, data):
         self.get_logger().info("Received image frame")
