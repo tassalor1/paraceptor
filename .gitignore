@@ -112,3 +112,7 @@ venv.bak/
 *.jpg
 *.jpeg
 *.pt
+
+# Install and build files
+install/
+build/

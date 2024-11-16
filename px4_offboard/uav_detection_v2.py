@@ -24,7 +24,7 @@ current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
 
-from px4_offboard.midasModel.run import run
+from midasModel.run import run 
 
 def process_depth_for_display(prediction, bits=1):
     if not np.isfinite(prediction).all():
@@ -129,8 +129,8 @@ class CVProcessor:
 
         # depth model
         # if best_bbox is not None:
-        depth_model = DepthDistance(img=img, best_bbox=best_bbox)
-        median_depth, prediction = depth_model.run_model()
+        # depth_model = DepthDistance(img=img, best_bbox=best_bbox)
+        # median_depth, prediction = depth_model.run_model()
             
         self.draw_annotations(img, height, width, recon_centroid_x, 
                               recon_centroid_y, median_depth)
@@ -143,9 +143,11 @@ class CVProcessor:
             velocity_x = self.pid_x(error_x)
             velocity_y = self.pid_y(error_y)
 
-            return img, velocity_x, velocity_y, highest_conf, prediction
+            return img, velocity_x, velocity_y, highest_conf
+            # return img, velocity_x, velocity_y, highest_conf, prediction
         
-        return img, None, None, None, prediction
+        return img, None, None, None
+        # return img, None, None, None, prediction
 
     def create_mask(self, height, width):
         mask = np.ones((height, width), dtype=np.uint8) * 255
@@ -203,7 +205,7 @@ class ImageSubscriber(Node):
 
         self.subscription = self.create_subscription(
             Image,
-            '/depth_camera',
+            '/camera',
             self.listener_callback,
             qos_profile)
 
@@ -240,16 +242,17 @@ class ImageSubscriber(Node):
     def listener_callback(self, data):
         self.get_logger().info("Received image frame")
         current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
-        img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
+        img, velocity_x, velocity_y, highest_conf = self.cv_processor.process_image(current_frame, self.current_yaw)
+        # img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
 
         # Process depth image for imshow
-        depth_img = process_depth_for_display(prediction)
+        # depth_img = process_depth_for_display(prediction)
 
         # Create the combined image
-        combined_img = create_combined_image(img, depth_img)
+        # combined_img = create_combined_image(img, depth_img)
 
         # Display the combined image
-        cv2.imshow('Detected Frame', combined_img)
+        cv2.imshow('Detected Frame', img)
         cv2.waitKey(1)
 
         if velocity_x is not None and velocity_y is not None:
