@@ -1,49 +1,14 @@
-Prerequsiteis 
- * Run for GUI in docker `xhost +local:docker`
-
- * Run the docker image
-  * Run `docker ps` - you should see `Name`
-   * Take this `Name` and replce with [container_name] in each command
- * cd into PX4 in docker and build it `docker exec -it [container_name] bash -c "cd /PX4-Autopilot && make px4_sitl_default"`
+# PX4 + ROS2 Docker Setup for Jetson Nano
 
 
-# Run Docker Image
+## Build and Run the Docker Image
+From the directory containing the `Dockerfile`, build the Docker image:
 ```
-docker run -it --network host --privileged -e DISPLAY=$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix px4_ros2_sim
+docker build -t px4-ros2-drone .
 ```
-
-# RUN MULTI DRONE
-## Terminal 1 
+Start the container with the following command:
 ```
-docker exec -it agitated_buck bash -c "source /opt/ros/humble/setup.bash && cd /microros_ws && source install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0"
-
-```
-## Terminal 2 Bridge from home directory 
-```
-docker exec -it agitated_buck  bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run ros_gz_image image_bridge /camera"
-```
-
-## Terminal 3 Drone 1 Recon
-```
-docker exec -it agitated_buck  bash -c "export GZ_SIM_RESOURCE_PATH=/PX4-Autopilot/Tools/sitl_gazebo/models && export XDG_RUNTIME_DIR=/tmp/runtime-root && mkdir -p $XDG_RUNTIME_DIR && chmod 700 $XDG_RUNTIME_DIR && cd /PX4-Autopilot && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='7,0,0,0,0,0' PX4_SIM_MODEL=1040_gazebo-classic_standard_vtol ./build/px4_sitl_default/bin/px4 -i 1"
-```
-
-## Terminal 4 Drone 2 Inteceptor
-```
-docker exec -it [container_name] bash -c "cd /PX4-Autopilot && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && export GZ_SIM_RESOURCE_PATH=/PX4-Autopilot/Tools/sitl_gazebo/models && PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE='0,0,0,0,0,0' PX4_SIM_MODEL=4002_gz_x500_depth ./build/px4_sitl_default/bin/px4 -i 2"
-```
-
-## Terminal 5 
-```
-docker exec -it [container_name] bash -c "chmod +x /usr/local/bin/QGroundControl.AppImage && /usr/local/bin/QGroundControl.AppImage"
-```
-
-## Terminal 6 
-```
-docker exec -it [container_name] bash -c "cd /paraceptor && source /install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && source /px4_ros_com_ws/install/setup.bash && python px4_offboard/uav_detection_v2.py"
-```
-You may have to replace the path to best_fixed.pt in line 27 of the uav_detection_v2.py, so that the path is appropriate to your local system. 
-## Terminal 7
-```
-docker exec -it [container_name] bash -c "cd /paraceptor && source /install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && source /px4_ros_com_ws/install/setup.bash && source /install/setup.bash && ros2 launch px4_offboard offboard_position_control.launch.py"
+docker run --runtime nvidia --network host --gpus all --name drone-container \
+    -v /path/to/data:/workspace/data \
+    fastdds-ros2-drone
 ```
