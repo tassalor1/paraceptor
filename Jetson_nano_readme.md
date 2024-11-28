@@ -16,6 +16,7 @@ docker run --rm -it --runtime nvidia --network host --gpus all -e DISPLAY dustyn
 /usr/local/bin/ros2_install.sh 
 ```
 
+
 ```
 cd ~
 mkdir paraceptor
