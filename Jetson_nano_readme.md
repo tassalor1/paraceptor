@@ -11,6 +11,11 @@ docker run --rm -it --runtime nvidia --network host --gpus all -e DISPLAY dustyn
    * [FastDDS Installed](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html#fast-dds-installation)
    * git clone https://github.com/PX4/PX4-Autopilot.git
 
+## Need to build all ros2 packages from source in the container
+```
+/usr/local/bin/ros2_install.sh 
+```
+
 ```
 cd ~
 mkdir paraceptor
