@@ -2,15 +2,17 @@
 
 
 ## Pull and Run the Docker container
+```
 docker pull dustynv/ros:humble-ros-base-l4t-r32.7.1
-docker run --rm -it --runtime nvidia --network host --gpus all -e DISPLAY dustynv/ros:humble-ros-base-l4t-r32.7.1
+docker run -it --runtime nvidia --network host --gpus all -e DISPLAY dustynv/ros:humble-ros-base-l4t-r32.7.1
+```
 
 ## Create `ros2_install` file
 Inside the Docker container, create the `ros2_install.sh` script:
 ```
 nano /usr/local/bin/ros2_install.sh
 ```
-Copy and paste the contents from the [ros_install.sh file](https://github.com/dusty-nv/jetson-containers/blob/master/packages/ros/ros2_install.sh) file into the script. 
+Copy and paste the contents from the [ros_install.sh](https://github.com/dusty-nv/jetson-containers/blob/master/packages/ros/ros2_install.sh) file into the script. 
 Make the script executable:
 ```
 sudo chmod +x /usr/local/bin/ros2_install.sh
