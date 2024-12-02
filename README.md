@@ -4,17 +4,16 @@
    * [FastDDS Installed](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html#fast-dds-installation)
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
-   * Ubuntu 22.04
-   * ROS2 Humble
-   * Python 3.10
+   * Ubuntu 20.04
+   * ROS2 Foxy
+   * Python 3.8
    * Torch for the yolov5 model
 
 Refer to doc for install
 
-
-## For CV ros-gzgarden ##
+## For CV ros-gz-bridge ##
 ```
-sudo apt install ros-humble-ros-gzgarden
+sudo apt install ros-foxy-ros-gz-bridge
 ```
 
 ## venv
@@ -39,7 +38,7 @@ ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 ros2 run ros_gz_image image_bridge /camera
 ```
 

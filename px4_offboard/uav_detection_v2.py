@@ -110,11 +110,14 @@ class DepthDistance:
         return median_depth, prediction
     
 class CVProcessor:
-    def __init__(self, pid_x, pid_y):
+    def __init__(self, pid_x, pid_y, drone_model):
         self.pid_x = pid_x
         self.pid_y = pid_y
-        self.vertical_offset_ratio = 0.10
-        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt')
+        self.vertical_offset_ratio = 0.50
+
+        self.model = torch.hub.load('ultralytics/yolov5', 'custom', path='yolov5/weights/best.pt') if drone_model else torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+
+
 
     def process_image(self, current_frame, current_yaw):
         median_depth = None
@@ -152,7 +155,7 @@ class CVProcessor:
     def create_mask(self, height, width):
         mask = np.ones((height, width), dtype=np.uint8) * 255
         propeller_mask_height = int(height * 0.20)
-        propeller_mask_width = int(width * 0.20)
+        propeller_mask_width = int(width * 0.40)
         vertical_offset = int(height * self.vertical_offset_ratio)
 
         mask[vertical_offset:vertical_offset + propeller_mask_height, -propeller_mask_width:] = 0

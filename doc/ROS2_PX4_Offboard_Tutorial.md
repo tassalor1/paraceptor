@@ -9,9 +9,9 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
    * [FastDDS Installed](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html#fast-dds-installation)
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
-   * Ubuntu 22.04
-   * ROS2 Humble
-   * Python 3.10
+   * Ubuntu 20.04
+   * ROS2 Foxy
+   * Python 3.8
 
 ## Install PX4 Offboard and dependencies (one time setup)
 
@@ -43,7 +43,7 @@ This should build. You may see some warnings interspered with the output.  As lo
 ## Install the micro_ros_agent  (one time setup)
 Follow these instructions to build the micro_ros_setup:  [Building micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup#building)
 ```
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 
 mkdir microros_ws && cd microros_ws
 
@@ -293,17 +293,17 @@ The terminal should show:
 [INFO] [offboard_control-2]: process started with pid [32778]
 [INFO] [rviz2-3]: process started with pid [32780]
 [rviz2-3] Warning: Ignoring XDG_SESSION_TYPE=wayland on Gnome. Use QT_QPA_PLATFORM=wayland to run on Wayland anyway.
-[offboard_control-2] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos.py:307: UserWarning: ReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT is deprecated. Use ReliabilityPolicy.BEST_EFFORT instead.
+[offboard_control-2] /opt/ros/foxy/local/lib/python3.8/dist-packages/rclpy/qos.py:307: UserWarning: ReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT is deprecated. Use ReliabilityPolicy.BEST_EFFORT instead.
 [offboard_control-2]   warnings.warn(
-[offboard_control-2] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos.py:307: UserWarning: DurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL is deprecated. Use DurabilityPolicy.TRANSIENT_LOCAL instead.
+[offboard_control-2] /opt/ros/foxy/local/lib/python3.8/dist-packages/rclpy/qos.py:307: UserWarning: DurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL is deprecated. Use DurabilityPolicy.TRANSIENT_LOCAL instead.
 [offboard_control-2]   warnings.warn(
-[offboard_control-2] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos.py:307: UserWarning: HistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST is deprecated. Use HistoryPolicy.KEEP_LAST instead.
+[offboard_control-2] /opt/ros/foxy/local/lib/python3.8/dist-packages/rclpy/qos.py:307: UserWarning: HistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST is deprecated. Use HistoryPolicy.KEEP_LAST instead.
 [offboard_control-2]   warnings.warn(
 [rviz2-3] [INFO] [1680367856.767339081] [rviz2]: Stereo is NOT SUPPORTED
 [rviz2-3] [INFO] [1680367856.767961910] [rviz2]: OpenGl version: 4.5 (GLSL 4.5)
-[visualizer-1] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos.py:307: UserWarning: ReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT is deprecated. Use ReliabilityPolicy.BEST_EFFORT instead.
+[visualizer-1] /opt/ros/foxy/local/lib/python3.8/dist-packages/rclpy/qos.py:307: UserWarning: ReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT is deprecated. Use ReliabilityPolicy.BEST_EFFORT instead.
 [visualizer-1]   warnings.warn(
-[visualizer-1] /opt/ros/humble/local/lib/python3.10/dist-packages/rclpy/qos.py:307: UserWarning: HistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST is deprecated. Use HistoryPolicy.KEEP_LAST instead.
+[visualizer-1] /opt/ros/foxy/local/lib/python3.8/dist-packages/rclpy/qos.py:307: UserWarning: HistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST is deprecated. Use HistoryPolicy.KEEP_LAST instead.
 [visualizer-1]   warnings.warn(
 [rviz2-3] [INFO] [1680367856.847242023] [rviz2]: Stereo is NOT SUPPORTED
 ```

@@ -15,12 +15,12 @@ docker run -it --network host --privileged -e DISPLAY=$DISPLAY -v /tmp/.X11-unix
 # RUN MULTI DRONE
 ## Terminal 1 
 ```
-docker exec -it agitated_buck bash -c "source /opt/ros/humble/setup.bash && cd /microros_ws && source install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0"
+docker exec -it agitated_buck bash -c "source /opt/ros/foxy/setup.bash && cd /microros_ws && source install/setup.bash && export ROS_DOMAIN_ID=0 && export PYTHONOPTIMIZE=1 && ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0"
 
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-docker exec -it agitated_buck  bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 run ros_gz_image image_bridge /camera"
+docker exec -it agitated_buck  bash -c "source /opt/ros/foxy/setup.bash && ros2 run ros_gz_image image_bridge /camera"
 ```
 
 ## Terminal 3 Drone 1 Recon

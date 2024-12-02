@@ -2,35 +2,19 @@
 
 from launch import LaunchDescription
 from launch_ros.actions import Node
-from ament_index_python.packages import get_package_share_directory
-import os
 
 def generate_launch_description():
-    package_dir = get_package_share_directory('px4_offboard')
     return LaunchDescription([
         Node(
             package='px4_offboard',
-            namespace='cv_offboard',
-            executable='visualizer',
+            node_namespace='cv_offboard',
+            node_executable='visualizer',
             name='visualizer'
         ),
         Node(
             package='px4_offboard',
-            namespace='px4_2',
-            executable='cv_offboard',
+            node_namespace='px4_2',
+            node_executable='cv_offboard',
             name='cv_offboard'
         ),
-        # Node(
-        #     package='px4_offboard',
-        #     namespace='px4_1',
-        #     executable='recon_drone_path',
-        #     name='recon'
-        # )
-        # Node(
-        #     package='rviz2',
-        #     namespace='',
-        #     executable='rviz2',
-        #     name='rviz2',
-        #     arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
-        # )
     ])
