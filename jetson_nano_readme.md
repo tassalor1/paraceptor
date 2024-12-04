@@ -1,45 +1,28 @@
 # PX4 + ROS2 Docker Setup for Jetson Nano
+## Overview
 
+This tutorial explains how to setup the jetson nano for FOXY
 
-## Pull and Run the Docker container
-```
-docker pull dustynv/ros:foxy-ros-base-l4t-r32.7.1
-docker run -it --runtime nvidia --network host --gpus all -e DISPLAY dustynv/ros:foxy-ros-base-l4t-r32.7.1
-```
-
-## Create `ros2_install` file
-Inside the Docker container, create the `ros2_install.sh` script:
-```
-nano /usr/local/bin/ros2_install.sh
-```
-Copy and paste the contents from the [ros_install.sh](https://github.com/dusty-nv/jetson-containers/blob/master/packages/ros/ros2_install.sh) file into the script. 
-Make the script executable:
-```
-sudo chmod +x /usr/local/bin/ros2_install.sh
-```
-## Build All ROS2 Packages from Source
-# Run the following commands to build ROS2 packages from source:
-```
-/usr/local/bin/ros2_install.sh
-
-# Example: Install jetson-inference nodes under /ros2_workspace
-ROS_WORKSPACE=/ros2_workspace /usr/local/bin/ros2_install.sh \
-    https://github.com/dusty-nv/ros_deep_learning
-```
 ### Prerequisites
+   * Install 20.04 ubuntu [Image](https://github.com/Qengineering/Jetson-Nano-Ubuntu-20-image)
+   * [ROS2 Foxy Installed](https://docs.px4.io/main/en/ros/ros2_comm.html#install-ros-2),
+   * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
+   * Python 3.8
 
-   * [FastDDS Installed](https://docs.px4.io/v1.13/en/dev_setup/fast-dds-installation.html#fast-dds-installation)
-   * Ubuntu 20.04 (Jetson Nano compatible)
-   * ROS2 Foxy
-   * git clone https://github.com/PX4/PX4-Autopilot.git
-    ```
-    git clone https://github.com/PX4/PX4-Autopilot.git
-    ```
+## Install PX4 Offboard and dependencies (one time setup)
+
+install:
+```
+sudo apt install python3-rosdep2
+pip3 install --user kconfiglib
+```
+
+### Install the px4-offboard example
 
 ```
 cd ~
 mkdir paraceptor
-git clone https://${GIT_TOKEN}@github.com/tassalor1/paraceptor.git paraceptor
+git clone https://github.com/tassalor1/paraceptor.git
 ```
 
 ### Install PX4 msg
@@ -48,7 +31,7 @@ The `px4-offboard` example requires `px4_msgs` definitions:
 
 ```
 mkdir -p ~/px4_ros_com_ws/src && cd ~/px4_ros_com_ws/src
-/usr/local/bin/ros2_install.sh https://github.com/PX4/px4_msgs.git
+git clone https://github.com/PX4/px4_msgs.git
 ```
 
 Build:
@@ -57,15 +40,14 @@ Build:
 colcon build
 ```
 
-This should build. You may see some warnings interspered with the output.  As long as there are no __*errors*__ you should be OK..
-
 ## Install the micro_ros_agent  (one time setup)
 Follow these instructions to build the micro_ros_setup:  [Building micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup#building)
 ```
-export ROS_DISTRO=foxy
+source /opt/ros/foxy/setup.bash
 
 mkdir microros_ws && cd microros_ws
-/usr/local/bin/ros2_install.sh https://github.com/micro-ROS/micro_ros_setup.git -b $ROS_DISTRO
+
+git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git src/micro_ros_setup
 
 rosdep update && rosdep install --from-paths src --ignore-src -y
 
@@ -81,37 +63,23 @@ ros2 run micro_ros_setup build_agent.sh
 source install/local_setup.sh
 ```
 
-## Headless Setup Notes
-For headless operation on Jetson Nano:
-
-1. Disable GUI services to save resources:
-```bash
-sudo systemctl set-default multi-user.target
+## Run micro_ros_agent 
+```
+source ~/docker-build/px4_ros_com_ws/install/setup.bash
+source ../px4_ros_com_ws/src/install/setup.bash
+source install/setup.bash
+export ROS_DOMAIN_ID=0
+export PYTHONOPTIMIZE=1
+ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 
-2. Configure environment variables for headless operation:
-```bash
-export DISPLAY=:0
-export QT_X11_NO_MITSHM=1
+## Run offboard 
 ```
-
-3. For remote access, use SSH with X11 forwarding:
-```bash
-ssh -X username@jetson_ip
+source /home/jetson/px4_ros_com_ws/install/setup.bash
+export ROS_DOMAIN_ID=0
+export PYTHONOPTIMIZE=1
+python3 px4_offboard/uav_detection_v2.py
 ```
-
-4. Optimize memory usage:
-```bash
-# Increase swap space
-sudo fallocate -l 4G /swapfile
-sudo chmod 600 /swapfile
-sudo mkswap /swapfile
-sudo swapon /swapfile
-
-# Add to /etc/fstab for persistence
-echo '/swapfile none swap sw 0 0' | sudo tee -a /etc/fstab
-```
-
 5. Reduce unnecessary services:
 ```bash
 sudo systemctl disable snapd.service
