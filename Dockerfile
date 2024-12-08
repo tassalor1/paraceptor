@@ -1,118 +1,99 @@
-FROM ubuntu:22.04
+# Use NVIDIA's ROS2 Humble base image for Jetson
+FROM dustynv/ros:humble-ros-base-l4t-r32.7.1
 
 # Set environment variables
-ENV DEBIAN_FRONTEND=noninteractive
-ENV ROS_DISTRO=humble
-ENV PYTHONOPTIMIZE=1
-ENV ROS_DOMAIN_ID=0
+ENV ROS_DISTRO humble
+ENV ROS_OS_OVERRIDE=ubuntu:jammy
 
-# Install basic dependencies
+# Install Python 3.8
+RUN apt-get update && apt-get install -y software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa \
+    && apt-get update && apt-get install -y \
+    python3.8 python3.8-dev python3.8-distutils python3.8-venv \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Python 3.8 as default
+RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.6 1 \
+    && update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.8 2 \
+    && update-alternatives --set python3 /usr/bin/python3.8
+
+# Install pip for Python 3.8
+RUN wget https://bootstrap.pypa.io/get-pip.py \
+    && python3 get-pip.py \
+    && rm get-pip.py
+
+# Set the working directory to /root
+# Use NVIDIA's ROS2 Humble base image for Jetson
+FROM dustynv/ros:humble-ros-base-l4t-r32.7.1
+
+# Set environment variables
+ENV ROS_DISTRO humble
+
+# Set the working directory to /root/ros_ws
+WORKDIR /root/ros_ws
+RUN mkdir src
+
+# Install necessary system dependencies
 RUN apt-get update && apt-get install -y \
+    nano \
     git \
     wget \
-    curl \
-    python3-pip \
-    python3-venv \
-    lsb-release \
-    gnupg \
-    software-properties-common
-
-# Install ROS2 Humble
-RUN curl -sSL https://raw.githubusercontent.com/ros/rosdistro/master/ros.key -o /usr/share/keyrings/ros-archive-keyring.gpg
-RUN echo "deb [arch=$(dpkg --print-architecture) signed-by=/usr/share/keyrings/ros-archive-keyring.gpg] http://packages.ros.org/ros2/ubuntu $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/ros2.list > /dev/null
-RUN apt-get update && apt-get install -y ros-humble-desktop
-
-# Install colcon and rosdep
-RUN apt-get update && apt-get install -y python3-colcon-common-extensions python3-rosdep
-
-# Initialize rosdep
-RUN rosdep init || true
-RUN rosdep update
-
-# Verify ROS2 and colcon installation
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 topic list"
-RUN which colcon
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 pkg list"
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && ros2 node list"
-
-# Install additional ROS packages
-RUN apt-get update && apt-get install -y \
-    ros-humble-ackermann-msgs \
-    ros-humble-nav-msgs \
-    ros-humble-geometry-msgs \
-    ros-humble-sensor-msgs \
-    ros-humble-gazebo-ros-pkgs \
-    ros-humble-rmw-fastrtps-cpp \
-    ros-humble-ros-gz-bridge \
-    ros-humble-ros-gz-image
-
-# Install PX4 dependencies
-RUN apt-get install -y \
-    ninja-build \
-    cmake \
     build-essential \
-    genromfs \
-    libgstreamer1.0-dev \
-    libgstreamer-plugins-base1.0-dev \
-    protobuf-compiler \
-    libeigen3-dev
+    cmake \
+    python3-colcon-common-extensions \
+    python3-pip \
+    && rm -rf /var/lib/apt/lists/*
 
-# Clone PX4-Autopilot
-RUN git clone https://github.com/PX4/PX4-Autopilot.git --recursive
-RUN bash PX4-Autopilot/Tools/setup/ubuntu.sh --no-nuttx
+# Install necessary Python packages
+RUN pip3 install \
+    kconfiglib \
+    empy \
+    toml \
+    jinja2 \
+    pyserial \
+    numpy \
+    cerberus \
+    pyros-genmsg \
+    packaging
 
-# Build PX4 SITL 
-RUN cd PX4-Autopilot && make px4_sitl_default
+# Install Foonathan Memory
+RUN git clone https://github.com/eProsima/foonathan_memory_vendor.git /tmp/foonathan_memory_vendor && \
+    cd /tmp/foonathan_memory_vendor && \
+    mkdir build && cd build && \
+    cmake .. && \
+    cmake --build . --target install && \
+    rm -rf /tmp/foonathan_memory_vendor
 
-# Install QGroundControl dependencies
-RUN apt-get install -y \
-    libsdl2-dev \
-    libxcb-xinerama0 \
-    libxcb-cursor0
+# Install Fast DDS
+RUN git clone --recursive https://github.com/eProsima/Fast-DDS.git -b v2.0.2 /tmp/Fast-DDS && \
+    cd /tmp/Fast-DDS && \
+    mkdir build && cd build && \
+    cmake -DTHIRDPARTY=ON -DSECURITY=ON -DCMAKE_INSTALL_PREFIX=/usr/local .. && \
+    make -j$(nproc) && \
+    make install && \
+    rm -rf /tmp/Fast-DDS
 
-# Download QGroundControl AppImage
-RUN wget https://d176tv9ibo4jno.cloudfront.net/latest/QGroundControl.AppImage -O /usr/local/bin/QGroundControl.AppImage
-RUN chmod +x /usr/local/bin/QGroundControl.AppImage
+# Copy your application code into the container
+COPY ./paraceptor src/paraceptor
 
-# Setup Python virtual environment
-RUN python3 -m venv /paraceptor_env
+# Clone PX4 Autopilot into src directory
+RUN git clone https://github.com/PX4/PX4-Autopilot.git src/PX4-Autopilot
 
-# Clone paraceptor repository
-RUN mkdir -p /root/.ssh && chmod 700 /root/.ssh
-COPY id_rsa /root/.ssh/id_rsa
-RUN chmod 600 /root/.ssh/id_rsa
-RUN ssh-keyscan github.com >> /root/.ssh/known_hosts
-RUN git clone git@github.com:tassalor1/paraceptor.git
+# Clone missing dependencies into src
+RUN git clone https://github.com/ament/ament_cmake.git src/ament_cmake
+RUN git clone https://github.com/ament/ament_lint.git src/ament_lint
 
-# Install Python dependencies
-RUN /bin/bash -c "source /paraceptor_env/bin/activate && pip install --upgrade pip && pip install -r paraceptor/requirements.txt || true"
+# Install ROS2 packages from source using the script
+ADD https://raw.githubusercontent.com/dusty-nv/jetson-containers/master/packages/ros/ros2_install.sh /usr/local/bin/ros2_install.sh
+RUN chmod +x /usr/local/bin/ros2_install.sh
+RUN /usr/local/bin/ros2_install.sh https://github.com/PX4/px4_msgs.git
+RUN /usr/local/bin/ros2_install.sh https://github.com/micro-ROS/micro_ros_setup.git -b $ROS_DISTRO
 
-# Setup workspace
-RUN mkdir -p /px4_ros_com_ws/src
-WORKDIR /px4_ros_com_ws/src
-RUN git clone https://github.com/PX4/px4_msgs.git
-WORKDIR /px4_ros_com_ws
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && colcon build"
+# Source the ROS environment and build your workspace
+RUN /bin/bash -c "source /ros_entrypoint.sh && \
+    cd /root/ros_ws && \
+    colcon build"
 
-# Setup micro-ROS
-RUN mkdir -p /microros_ws/src
-WORKDIR /microros_ws/src
-RUN git clone -b $ROS_DISTRO https://github.com/micro-ROS/micro_ros_setup.git
-WORKDIR /microros_ws
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && rosdep install --from-paths src --ignore-src -y && colcon build"
-RUN /bin/bash -c "source /opt/ros/$ROS_DISTRO/setup.bash && \
-    source install/local_setup.bash && \
-    ros2 run micro_ros_setup create_agent_ws.sh && \
-    ros2 run micro_ros_setup build_agent.sh"
 
-# Set working directory
-WORKDIR /
-
-# Add setup to bashrc
-RUN echo "source /opt/ros/$ROS_DISTRO/setup.bash" >> ~/.bashrc
-RUN echo "source /px4_ros_com_ws/install/setup.bash" >> ~/.bashrc
-RUN echo "source /microros_ws/install/setup.bash" >> ~/.bashrc
-RUN echo "source /paraceptor_env/bin/activate" >> ~/.bashrc
-
-# Set entrypoint
-ENTRYPOINT ["/bin/bash"]
+# Set the default command to bash
+CMD ["/bin/bash"]
