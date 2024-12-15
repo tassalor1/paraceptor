@@ -20,11 +20,11 @@ from simple_pid import PID
 import sys
 import os
 import imutils
+import time
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
 sys.path.append(parent_dir)
-
 from midasModel.run import run 
 
 from yolov5.yoloDet import YoloTRT
@@ -160,23 +160,32 @@ class ImageSubscriber(Node):
         pid_x.output_limits = (-1, 1)
         pid_y.output_limits = (-1, 1)
 
-        #self.timer = self.create_timer(0.1, self.read_camera)
-
         #self.cv_processor = CVProcessor(pid_x, pid_y)
+
+        library = os.path.join(parent_dir, "yolov5/build/libmyplugins.so")
+        engine = os.path.join(parent_dir, "yolov5/build/yolov5s.engine")
+        self.model = YoloTRT(library=library, engine=engine, conf=0.5, yolo_ver="v5")
 
         # Open camera once
         gstreamer_pipeline = (
-        "nvarguscamerasrc ! video/x-raw(memory:NVMM), width=(int)1920, height=(int)1080, "
-        "format=(string)NV12, framerate=(fraction)30/1 ! nvvidconv ! video/x-raw, format=(string)BGRx ! "
-        "videoconvert ! video/x-raw, format=(string)BGR ! appsink"
+        "nvarguscamerasrc sensor-mode=1 ! " 
+        "video/x-raw(memory:NVMM),width=1920,height=1080,format=NV12,framerate=60/1 ! "
+        "nvvidconv ! video/x-raw, width=640, height=480, format=BGRx ! "
+        "videoconvert ! video/x-raw, format=BGR ! appsink"
         )
+
+
         self.cap = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
         if not self.cap.isOpened():
             self.get_logger().error("Failed to open camera")
         else:
             self.get_logger().info("Camera opened successfully")
 
-        self.timer = self.create_timer(0.1, self.read_camera)
+        self.timer = self.create_timer(0.001, self.read_camera)
+
+        # **Optional warm-up**: Run a dummy inference once at initialization to load all CUDA kernels.
+        dummy_frame = np.zeros((600, 600, 3), dtype=np.uint8)
+        self.model.Inference(dummy_frame)  # Warm up GPU and TensorRT once
 
     def read_camera(self):
         if not self.cap.isOpened():
@@ -198,9 +207,14 @@ class ImageSubscriber(Node):
     def listener_callback(self, msg):
         cv_image = self.br.imgmsg_to_cv2(msg, desired_encoding='bgr8')
 
-        frame = imutils.resize(cv_image, width=600)
-        model = YoloTRT(library="yolov5/build/libmyplugins.so", engine="yolov5/build/yolov5s.engine", conf=0.5, yolo_ver="v5")
-        detections, t = model.Inference(frame)
+         #frame = imutils.resize(cv_image, width=400)
+        start_time = time.time()
+        detections, inference_time = self.model.Inference(cv_image)
+        end_time = time.time()
+
+        total_latency = end_time - start_time
+        self.get_logger().info(f"Inference latency: {total_latency:.4f} seconds")
+
 
         # img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
 
@@ -211,24 +225,24 @@ class ImageSubscriber(Node):
         # combined_img = create_combined_image(img, depth_img)
 
         # Display the combined image
-        cv2.imshow('Detected Frame', frame)
+        cv2.imshow('Detected Frame', cv_image)
         cv2.waitKey(1)
 
-        if velocity_x is not None and velocity_y is not None:
-            twist = TrajectorySetpoint()
-            twist.velocity[0] = velocity_x
-            twist.velocity[1] = velocity_y
-            self.inteceptor_velocity.publish(twist)
+        #if velocity_x is not None and velocity_y is not None:
+           # twist = TrajectorySetpoint()
+            #twist.velocity[0] = velocity_x
+            #twist.velocity[1] = velocity_y
+            #self.inteceptor_velocity.publish(twist)
 
-        if highest_conf is not None:
-            print(f"Highest Confidence: {highest_conf}")
-            conf_data = Float32()
-            conf_data.data = float(highest_conf)
-            self.model_confidence.publish(conf_data)
-        else:
-            conf_data = Float32()
-            conf_data.data = 0.0
-            self.model_confidence.publish(conf_data)
+        #if highest_conf is not None:
+            #print(f"Highest Confidence: {highest_conf}")
+            #conf_data = Float32()
+            #conf_data.data = float(highest_conf)
+            #self.model_confidence.publish(conf_data)
+        #else:
+            #conf_data = Float32()
+            #conf_data.data = 0.0
+            #self.model_confidence.publish(conf_data)
 
 
 def main(args=None):

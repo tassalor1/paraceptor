@@ -3,30 +3,33 @@
 <package format="3">
   <name>paraceptor</name>
   <version>0.0.0</version>
-  <description>ROS2 python interface for px4</description>
-  <maintainer email="your_email@example.com">Your Name</maintainer>
+  <description>ROS2 Python interface for PX4</description>
+  <maintainer email="walkerconnor14@gmail.com">Your Name</maintainer>
   <license>BSD-3</license>
   
+  <!-- Build dependencies -->
   <buildtool_depend>ament_cmake</buildtool_depend>
   <build_depend>rosidl_default_generators</build_depend>
-  <build_depend>cv_bridge</build_depend>  
-  <build_depend>sensor_msgs</build_depend> 
+  <build_depend>sensor_msgs</build_depend>
+  <build_depend>std_msgs</build_depend>
   
+  <!-- Execution dependencies -->
   <exec_depend>rosidl_default_runtime</exec_depend>
-  <depend>rclpy</depend>
-  <depend>px4_msgs</depend>
-  <exec_depend>ros2launch</exec_depend>
-  <exec_depend>cv_bridge</exec_depend>  
-  <exec_depend>sensor_msgs</exec_depend> 
+  <exec_depend>rclpy</exec_depend>
+  <exec_depend>px4_msgs</exec_depend>
+  <exec_depend>sensor_msgs</exec_depend>
+  <exec_depend>std_msgs</exec_depend>
 
+  <!-- Test dependencies -->
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
-
+  
+  <member_of_group>rosidl_interface_packages</member_of_group>
+  <!-- Export -->
   <export>
     <build_type>ament_cmake</build_type>
   </export>
 </package>
-
 
