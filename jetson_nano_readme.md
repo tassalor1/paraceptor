@@ -95,7 +95,7 @@ Configure the CSI Connector:
     Choose "Camera IMX477 Dual."
     Save pin changes and reboot when prompted.
 
-check cv2 is using gstreamer
+check cv2 is using gstreamer. if it says no use cv2 with it
 ```
 python3 -c "import cv2; print(cv2.getBuildInformation())"
 ```
@@ -104,6 +104,10 @@ python3 -c "import cv2; print(cv2.getBuildInformation())"
 for system stats
 ```
 jtop
+```
+list camera available frame rate
+```
+v4l2-ctl --list-formats-ext
 ```
 
 YOLO on Nano

@@ -24,30 +24,15 @@ import time
 
 current_dir = os.path.dirname(os.path.abspath(__file__))
 parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
-sys.path.append(parent_dir)
-from midasModel.run import run 
+depth_anything_path = os.path.join(parent_dir)
+sys.path.append(depth_anything_path)
 
 from yolov5.yoloDet import YoloTRT
 
+import matplotlib.pyplot as plt
 
-def process_depth_for_display(prediction, bits=1):
-    if not np.isfinite(prediction).all():
-        prediction = np.nan_to_num(prediction, nan=0.0, posinf=0.0, neginf=0.0)
-        print("WARNING: Non-finite depth values present")
+# from metric_depth.depth_anything_v2.dpt import DepthAnythingV2
     
-    depth_min = prediction.min()
-    depth_max = prediction.max()
-    max_val = (2**(8*bits)) - 1
-    
-    if depth_max - depth_min > np.finfo("float").eps:
-        out = max_val * (prediction - depth_min) / (depth_max - depth_min)
-    else:
-        out = np.zeros(prediction.shape, dtype=prediction.dtype)
-    
-    out = cv2.applyColorMap(np.uint8(out), cv2.COLORMAP_INFERNO)
-    # cv2.putText(out, (50, 100), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 255), 2, cv2.LINE_AA)
-    
-    return out.astype("uint8" if bits == 1 else "uint16")
 
 def create_combined_image(img, depth_img, target_width=1300, target_height=440):
     # Define the width for each half of the combined image
@@ -62,60 +47,13 @@ def create_combined_image(img, depth_img, target_width=1300, target_height=440):
 
     return combined_img
 
-class DepthDistance:
-    def __init__(self, img, best_bbox = None) -> None:
-        self.best_bbox = best_bbox
-        self.img = img
 
-
-        torch.backends.cudnn.enabled = True
-        torch.backends.cudnn.benchmark = True
-
-    def slice_img(self, img):
-        height, width = img.shape[:2]
-        
-        if self.best_bbox is None:
-            # No bounding box available, crop to center
-            crop_size = 450
-            x_center = width // 2
-            y_center = height // 2
-            
-            x_min = max(0, x_center - crop_size // 2)
-            y_min = max(0, y_center - crop_size // 2)
-            x_max = min(width, x_center + crop_size // 2)
-            y_max = min(height, y_center + crop_size // 2)
-            print(" Centre of image midas depth")
-        else:
-            # Use the existing bounding box logic
-            best_bbox1 = list(map(int, self.best_bbox))
-            x_min = max(0, min(best_bbox1[0], width))
-            y_min = max(0, min(best_bbox1[1], height))
-            x_max = max(0, min(best_bbox1[2], width))
-            y_max = max(0, min(best_bbox1[3], height))
-            print(" best box midas depth")
-        
-        return img[y_min:y_max, x_min:x_max]
-
-    def run_model(self):
-        default_models = {
-        'dpt_swin2_tiny_256': 'midasModel/weights/dpt_swin2_tiny_256.pt',
-        }
-        sliced_img = self.slice_img(self.img)
-
-        # Set torch options
-        torch.backends.cudnn.enabled = True
-        torch.backends.cudnn.benchmark = True
-        
-        median_depth, prediction = run(image=sliced_img,
-        model_path=default_models['dpt_swin2_tiny_256'],
-        model_type='dpt_swin2_tiny_256',
-        )
-
-        return median_depth, prediction
     
 class ImageSubscriber(Node):
     def __init__(self):
         super().__init__('image_subscriber')
+
+        init_start_time = time.time()
 
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
@@ -183,9 +121,40 @@ class ImageSubscriber(Node):
 
         self.timer = self.create_timer(0.001, self.read_camera)
 
-        # **Optional warm-up**: Run a dummy inference once at initialization to load all CUDA kernels.
         dummy_frame = np.zeros((600, 600, 3), dtype=np.uint8)
         self.model.Inference(dummy_frame)  # Warm up GPU and TensorRT once
+
+
+        # load calibration files, scale to new resoltion(640/480)
+        camera_matrix = np.load('camera_calibration/camera_matrix.npy')
+        dist_coefficients = np.load('camera_calibration/dist_coefficients.npy')
+
+        # Original(IM477 resoltion) and new resolutions
+        original_width, original_height = 1920, 1080
+        new_width, new_height = 640, 480
+
+        # Scale factors
+        scale_x = new_width / original_width
+        scale_y = new_height / original_height
+
+        # Scale the camera matrix
+        scaled_camera_matrix = camera_matrix.copy()
+        scaled_camera_matrix[0, 0] *= scale_x  # fx
+        scaled_camera_matrix[1, 1] *= scale_y  # fy
+        scaled_camera_matrix[0, 2] *= scale_x  # cx
+        scaled_camera_matrix[1, 2] *= scale_y  # cy
+
+        self.map1, self.map2 = cv2.initUndistortRectifyMap(
+        scaled_camera_matrix, dist_coefficients, None, scaled_camera_matrix, (new_width, new_height), cv2.CV_16SC2
+    )   
+        
+
+        init_end_time = time.time()
+
+        init_latency = init_end_time - init_start_time
+
+        self.get_logger().info(f"init latency: {init_latency}")
+
 
     def read_camera(self):
         if not self.cap.isOpened():
@@ -194,8 +163,13 @@ class ImageSubscriber(Node):
         if not ret:
             self.get_logger().warn("Failed to capture frame")
             return
+
+         # take raw frame and calibrated camera matrix and coeff and output undistorted_frame
+        undistorted_frame = cv2.remap(frame, self.map1, self.map2, interpolation=cv2.INTER_LINEAR)
+        
+
         try:
-            ros_image = self.br.cv2_to_imgmsg(frame, encoding="bgr8")
+            ros_image = self.br.cv2_to_imgmsg(undistorted_frame, encoding="bgr8")
             self.camera_feed.publish(ros_image)
         except Exception as e:
             self.get_logger().error(f"Failed to publish frame: {e}")
@@ -218,11 +192,6 @@ class ImageSubscriber(Node):
 
         # img, velocity_x, velocity_y, highest_conf, prediction = self.cv_processor.process_image(current_frame, self.current_yaw)
 
-        # Process depth image for imshow
-        # depth_img = process_depth_for_display(prediction)
-
-        # Create the combined image
-        # combined_img = create_combined_image(img, depth_img)
 
         # Display the combined image
         cv2.imshow('Detected Frame', cv_image)

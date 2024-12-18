@@ -1,0 +1,9 @@
+TODO
+
+*DEPTH ESTIMATION
+- capture undistored picture
+- calc boundbox height then calc focal length: f = (H_image*D_known) / H_real
+- with focal length calc distance: D = (f * H_real) / H_image
+- use this equation when wanting distance of any object in bounding box
+
+*

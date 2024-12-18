@@ -1,5 +1,15 @@
+#!/usr/bin/env python3
 import cv2
 import numpy as np
+import sys
+import os
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+parent_dir = os.path.abspath(os.path.join(current_dir, os.pardir))
+depth_anything_path = os.path.join(parent_dir)
+sys.path.append(depth_anything_path)
+
+from yolov5.yoloDet import YoloTRT
 
 # GStreamer pipeline for 640x480 resolution
 gstreamer_pipeline = (
@@ -8,6 +18,8 @@ gstreamer_pipeline = (
     "nvvidconv ! video/x-raw, width=640, height=480, format=BGRx ! "
     "videoconvert ! video/x-raw, format=BGR ! appsink"
 )
+
+model = YoloTRT(library="yolov5/build/libmyplugins.so", engine="yolov5/build/yolov5s.engine", conf=0.5, yolo_ver="v5")
 
 cap = cv2.VideoCapture(gstreamer_pipeline, cv2.CAP_GSTREAMER)
 if not cap.isOpened():
@@ -46,6 +58,9 @@ while True:
 
     # Apply undistortion
     undistorted_frame = cv2.remap(frame, map1, map2, interpolation=cv2.INTER_LINEAR)
+    
+
+    detections, t = model.Inference(undistorted_frame)
 
     # Show the undistorted frame
     cv2.imshow('Undistorted Frame', undistorted_frame)
