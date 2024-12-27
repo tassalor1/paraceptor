@@ -8,7 +8,8 @@ from rclpy.clock import Clock
 from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
 # Message Type Imports
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand, VehicleLocalPosition, ImageBasedVisualServo
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand, VehicleLocalPosition
+from paraceptor.msg import ImageBasedVisualServo
 from std_msgs.msg import Float32
 from geometry_msgs.msg import Twist, Point
 from sensor_msgs.msg import CameraInfo
@@ -20,7 +21,7 @@ from scipy.spatial.transform import Rotation as R
 import time
 import math
 import numpy as np
-from velocity_controller.control_system import ControlSystem
+from px4_offboard.control_system import ControlSystem
 
 class InterceptorController(Node):
 

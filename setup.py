@@ -30,7 +30,8 @@ setup(
                 'offboard_base_comm = px4_offboard.offboard_base_comm:main',
                 'cv_offboard = px4_offboard.cv_offboard:main',
                 'linear_flight = px4_offboard.linear_flight:main',
-                'simple_controller = velocity_controller.simple_controller:main'
+                'simple_controller = velocity_controller.simple_controller:main',
+                'uav_detection = visual_guidance.uav_detection:main'
         ],
     },
 )
