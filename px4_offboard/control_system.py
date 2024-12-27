@@ -13,10 +13,10 @@ class ControlSystem:
         # self.Q = ca.MX.eye(4)
         # self.R = ca.MX.eye(4)
         # [5.48169041 0.51849889 9.59324074 3.17983114 9.03843909 5.40182631, 2.21062959 7.90420299]
-        self.Q = ca.diag([2.1212808,3.16755349,7.9567266,0.83231977])
-        self.R = ca.diag([8.35439349,1.16593257,3.74373557,3.15607747])
-        # self.Q = ca.diag([1,1,1,1])
-        # self.R = ca.diag([0.1,0.1,0.1,0.1])
+        # self.Q = ca.diag([2.1212808,3.16755349,7.9567266,0.83231977])
+        # self.R = ca.diag([8.35439349,1.16593257,3.74373557,3.15607747])
+        self.Q = ca.diag([1,1,1,1])
+        self.R = ca.diag([0.1,0.1,0.1,0.1])
         self.u_bounds = [(-max_velocity, max_velocity)] * 3 + [(-ca.pi/6, ca.pi/6)]
         self.target_feature = ca.MX([0, 0, 0, ca.pi/2])
 
