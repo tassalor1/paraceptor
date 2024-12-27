@@ -126,23 +126,5 @@ ros2 run rqt_graph rqt_graph
 
 *TODO*: Height not more than 3 metres. Fix that.
 
-### Hardware
-
-This section is intended for running the offboard control node on a companion computer, such as a Raspberry Pi or Nvidia Jetson/Xavier. You will either need an SSH connection to run this node, or have a shell script to run the nodes on start up. 
-
-If you are running this through a UART connection into the USB port, start the micro-ros agent with the following command
-
-```
-micro-ros-agent serial --dev /dev/ttyUSB0 -b 921600 -v
-```
-If you are using a UART connection which goes into the pinouts on the board, start the micro-ros agent with the following comand
-```
-micro-ros-agent serial --dev /dev/ttyTHS1 -b 921600 -V
-```
-
-To run the offboard position control example, run the node on the companion computer
-```
-ros2 launch px4_offboard offboard_hardware_position_control.launch.py
-```
 
 

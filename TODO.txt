@@ -6,4 +6,6 @@ TODO
 - with focal length calc distance: D = (f * H_real) / H_image
 - use this equation when wanting distance of any object in bounding box
 
-*
+
+
+ 

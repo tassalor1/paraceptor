@@ -10,39 +10,8 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='px4_offboard',
-            namespace='px4_offboard',
-            executable='visualizer',
-            name='visualizer'
+            namespace='px4_hardware',
+            executable='hardware_test',
+            name='hardware_test'
         ),
-        Node(
-            package='px4_offboard',
-            namespace='px4_2',
-            executable='inteceptor_path',
-            name='inteceptor'
-        ),
-        Node(
-            package='px4_offboard',
-            namespace='px4_1',
-            executable='recon_drone_path',
-            name='recon'
-        ),
-        Node(
-            package = 'px4_offboard',
-            namespace='base_station',
-            executable= 'base_station',
-            name = 'base_station'
-        ),
-        # Node(
-        #     package = 'px4_offboard',
-        #     namespace='base_station',
-        #     executable= 'linear_flight',
-        #     name = 'linear'
-        # )
-        # Node(
-        #     package='rviz2',
-        #     namespace='',
-        #     executable='rviz2',
-        #     name='rviz2',
-        #     arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
-        # )
     ])

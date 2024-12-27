@@ -1,22 +1,19 @@
 #!/usr/bin/env python3
-import numpy as np
 import rclpy
+import numpy as np
 from rclpy.node import Node
 from rclpy.clock import Clock
-from rclpy.qos import (QoSProfile, QoSReliabilityPolicy, 
-                       QoSHistoryPolicy, QoSDurabilityPolicy)
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
-from px4_msgs.msg import (OffboardControlMode, TrajectorySetpoint, 
-                          VehicleStatus, VehicleCommand, VehicleLocalPosition)
-from geometry_msgs.msg import Point, Twist
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleStatus, VehicleCommand, VehicleLocalPosition
+from geometry_msgs.msg import Twist, Point
 
-
-class LinearFlight(Node):
+class ReconControl(Node):
     def __init__(self, namespace):
-        super().__init__('linear_control')
+        super().__init__('hardware_test')
         
         qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_RELIABLE,
             durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
             history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
             depth=1
@@ -28,6 +25,7 @@ class LinearFlight(Node):
             self.vehicle_status_callback,
             qos_profile
         )
+
         
         self.local_position_sub = self.create_subscription(
             VehicleLocalPosition,
@@ -59,11 +57,14 @@ class LinearFlight(Node):
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
-        
-        self.current_x = 0.0
-        self.current_y = 0.0
-        self.current_z = 0.0
 
+        # Circle parameters
+        self.radius = 10.0  # meters
+        self.linear_velocity = 1.0  # meters per second
+        self.altitude = 5.0  # Altitude in meters
+        self.angular_velocity = self.linear_velocity / self.radius
+        self.theta = 0.0  # Angle for circular motion
+        
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
 
@@ -104,38 +105,34 @@ class LinearFlight(Node):
         offboard_msg.velocity = False
         offboard_msg.acceleration = False
         self.publisher_offboard_mode.publish(offboard_msg)
+
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
-            if self.current_x < 748.0:
-                new_x = self.current_x 
-                new_y = self.current_y + 7.0 * 0.5
-                new_z = self.current_z
+            x = self.radius * np.cos(self.theta)
+            y = self.radius * np.sin(self.theta)
+            z = -self.altitude  # Assuming negative is down
+            
+            trajectory_msg = TrajectorySetpoint()
+            trajectory_msg.position = [x, y, z]
+            trajectory_msg.yaw = self.theta  # Keep yaw aligned with the circle
+            self.publisher_trajectory.publish(trajectory_msg)
+            self.get_logger().info(f"Publishing trajectory: x={x}, y={y}, z={z}, yaw={self.theta}")
+            
+            # Update theta for the next iteration
+            self.theta += self.angular_velocity * self.dt
+            if self.theta >= 2 * np.pi:
+                self.theta -= 2 * np.pi
+        else:
+            self.get_logger().info(f"Offboard not set or vehicle not armed: NAV_STATE={self.nav_state}, ARMING_STATE={self.arming_state}")
 
-                yaw = np.arctan2(new_y, new_x)
-
-                trajectory_msg = TrajectorySetpoint()
-                trajectory_msg.position = [new_x, new_y, new_z]
-                trajectory_msg.yaw = yaw
-                self.publisher_trajectory.publish(trajectory_msg)
 def main(args=None):
     rclpy.init(args=args)
-    namespace = 'px4_1'
-    linear_control = LinearFlight(namespace=namespace)
+    namespace = 'px4_hardware'
+    recon_control = ReconControl(namespace=namespace)
 
-    rclpy.spin(linear_control)
+    rclpy.spin(recon_control)
 
-    linear_control.destroy_node()
+    recon_control.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
-
-
-# TODO: 
-#       1.Check midas depth range on target - can it see it at current range?
-#       2.set up pipeline that obtains drones actual distance/ midas depth/ timestamp - lets also save midas images for review 
-#       3.setup some sort of analytics for midas and yolo model - i.e. plots showing detection/ inference speed/ precision/ compute used
-
-'''
-Camera gains visual of 100x100 yellow square 270ft away
-
-'''

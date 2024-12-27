@@ -17,6 +17,7 @@ sudo apt install libboost-python1.71-dev libboost-dev
 sudo apt install python3-rosdep2
 sudo apt install ros-foxy-cv-bridge
 pip3 install --user kconfiglib numpy==1.19.2 simple_pid timm
+pip3 install --upgrade setuptools
 ```
 
 ### Install the px4-offboard example
@@ -166,4 +167,29 @@ pip3 install MAVProxy
 Run MAVProxy: This should say its connected
 ```
 sudo mavproxy.py --master=/dev/ttyTHS1 --baudrate 57600 --aircraft my_drone
+```
+
+## SSH connwction through telem radio
+```
+sudo apt update
+sudo apt install socat
+```
+```
+socat -d -d pty,link=/dev/ttyUSB0,raw,echo=0,waitslave tcp-l:14550,reuseaddr,fork
+```
+
+## Running on ros script on Hardware
+
+This section is intended for running the offboard control node on a companion computer. You will either need an SSH connection to run this node, or have a shell script to run the nodes on start up. 
+
+If you are using a UART connection which goes into the pinouts on the board, start the micro-ros agent with the following comand
+```
+source /opt/ros/foxy/setup.bash
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyTHS1 -b 921600 -V
+```
+
+To run the offboard position control example, run the node on the companion computer
+```
+ros2 launch px4_offboard offboard_hardware_position_control.launch.py
+```
 ```
