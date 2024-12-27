@@ -10,7 +10,7 @@ def generate_launch_description():
     return LaunchDescription([
         Node(
             package='px4_offboard',
-            namespace='px4_hardware',
+            namespace='px4_1',
             executable='hardware_test',
             name='hardware_test'
         ),
