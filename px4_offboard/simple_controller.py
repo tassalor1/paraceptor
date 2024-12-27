@@ -1,4 +1,4 @@
-'''
+a'''
 This code uses the control system in control_system.py to calculate an IBVS trajectory for the target interception.
 '''
 
@@ -35,7 +35,7 @@ class InterceptorController(Node):
             depth=5
         )
 
-        self.K = np.zeros((3,3))
+        self.K = np.zeros((3,3)) # change for nano to calibration matrix
         self.R = np.eye(3) 
         self.target_point = Point()
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
@@ -53,9 +53,7 @@ class InterceptorController(Node):
 
         # self.vehicle_local_position_subscription = self.create_subscription(VehicleLocalPosition, f'/{namespace}/fmu/out/vehicle_local_position', self.vehicle_local_position_callback, qos_profile)
         # At the moment we can use the attitude topic, but in the actual drone we have to implement a madgwick filter
-        self.rotation_subscription = self.create_subscription(VehicleAttitude, f'/{namespace}/fmu/out/vehicle_attitude', self.attitude_callback, qos_profile)
-        # For the actual drone we'll have to do the camera calibration before getting the camera info
-        self.camera_info = self.create_subscription(CameraInfo, '/camera_info', self.camera_info_callback, qos_profile)
+        
         self.ibvs_subscriber = self.create_subscription(ImageBasedVisualServo, '/target_tracking', self.ibvs_callback, qos_profile)
         self.vehicle_command_publisher_ = self.create_publisher(VehicleCommand, f'/{namespace}/fmu/in/command', qos_profile)
         self.status_subscription = self.create_subscription(VehicleStatus, f'/{namespace}/fmu/out/status', self.vehicle_status_callback, qos_profile)
@@ -63,10 +61,6 @@ class InterceptorController(Node):
         self.movement_timer = self.create_timer(self.timestep, self.movement_callback)
 
         self.previous_trajectory = None
-
-    def camera_info_callback(self, msg):
-        self.K = np.array(msg.k).reshape((3,3))
-        self.control_system.set_K_matrix(self.K)
 
     def ibvs_callback(self, msg):
         if(msg.bbox_perimeter):
@@ -109,16 +103,6 @@ class InterceptorController(Node):
         else:
             self.get_logger().info("Trajectory not calculated")
         time.sleep(0.1)
-
-    def attitude_callback(self, msg):
-        # Convert quaternion to rotation matrix
-        q = (msg.q[0], msg.q[1], msg.q[2], msg.q[3])
-        
-        # Create a rotation object from the quaternion
-        rotation = R.from_quat(q) # Note the order (x, y, z, w)
-
-        # Create a rotation matrix
-        self.R = rotation.as_matrix()
 
     def arm_vehicle(self):
         # Arm the vehicle if it is in OFFBOARD mode and not already armed
