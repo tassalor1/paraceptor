@@ -39,7 +39,7 @@ ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ## Terminal 2 Bridge from home directory 
 ```
 source /opt/ros/foxy/setup.bash
-ros2 run ros_gz_image image_bridge /camera
+ros2 run ros_gz_bridge parameter_bridge /camera@sensor_msgs/msg/Image@gz.msgs.Image /camera_info@sensor_msgs/msg/CameraInfo@gz.msgs.CameraInfo
 ```
 
 ## Terminal 3 Drone 1 Recon
