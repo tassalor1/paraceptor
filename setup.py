@@ -19,7 +19,6 @@ setup(
     ],
     install_requires=['setuptools'],
     zip_safe=True,
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
                 'recon_drone_path = px4_offboard.recon_drone_path:main',
@@ -29,7 +28,6 @@ setup(
                 'base_station = px4_offboard.base_station:main',
                 'offboard_base_comm = px4_offboard.offboard_base_comm:main',
                 'cv_offboard = px4_offboard.cv_offboard:main',
-                'linear_flight = px4_offboard.linear_flight:main',
         ],
     },
 )

@@ -20,17 +20,4 @@ def generate_launch_description():
             executable='cv_offboard',
             name='cv_offboard'
         ),
-        # Node(
-        #     package='px4_offboard',
-        #     namespace='px4_1',
-        #     executable='recon_drone_path',
-        #     name='recon'
-        # )
-        # Node(
-        #     package='rviz2',
-        #     namespace='',
-        #     executable='rviz2',
-        #     name='rviz2',
-        #     arguments=['-d', [os.path.join(package_dir, 'visualize.rviz')]]
-        # )
     ])
