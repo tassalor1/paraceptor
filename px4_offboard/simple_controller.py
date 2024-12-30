@@ -1,4 +1,4 @@
-a'''
+'''
 This code uses the control system in control_system.py to calculate an IBVS trajectory for the target interception.
 '''
 

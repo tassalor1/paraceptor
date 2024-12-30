@@ -19,7 +19,6 @@ setup(
 ],
     install_requires=['setuptools'],
     zip_safe=True,
-    tests_require=['pytest'],
     entry_points={
         'console_scripts': [
                 'uav_camera_det = px4_offboard.uav_camera_det:main',

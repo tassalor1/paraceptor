@@ -12,9 +12,12 @@ This tutorial explains how to setup the jetson nano for FOXY/ Arducam IMX477 and
 
 install:
 ```
+sudo apt update
 sudo apt install python3-numpy
 sudo apt install libboost-python1.71-dev libboost-dev
 sudo apt install python3-rosdep2
+sudo apt install ros-foxy-mavros ros-foxy-mavros-extras
+sudo /opt/ros/foxy/lib/mavros/install_geographiclib_datasets.sh
 sudo apt install ros-foxy-cv-bridge
 pip3 install --user kconfiglib numpy==1.19.2 simple_pid timm
 pip3 install --upgrade setuptools
@@ -151,24 +154,33 @@ source ~/px4_ros_com_ws/install/setup.bash
 LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1 python3 px4_offboard/uav_detection_nano.py
 ```
 
-## Connect Nano to pixracer
-
+## Connect Nano to pixracer through telem or usb
+Install pip and MAVProxy:
+```
+sudo apt-get install python3-pip -y
+pip3 install MAVProxy
+```
+Remove ModemManager and set serial permissions:
+## this is for telem1
+```
+sudo apt-get remove modemmanager -y
+sudo chown root:dialout /dev/ttyTHS1
+sudo chmod 660 /dev/ttyTHS1
+```
+Run MAVProxy: This should say its connected
+```
+sudo mavproxy.py --master=/dev/ttyTHS1 --baudrate 57600 --aircraft my_drone
+```
+## usb
 Remove ModemManager and set serial permissions:
 ```
 sudo apt-get remove modemmanager -y
 sudo chown root:dialout /dev/ttyTHS1
 sudo chmod 660 /dev/ttyTHS1
 ```
-Install pip and MAVProxy:
 ```
-sudo apt-get install python3-pip -y
-pip3 install MAVProxy
+mavproxy.py --master=/dev/ttyACM0 --baudrate 57600 --aircraft my_drone
 ```
-Run MAVProxy: This should say its connected
-```
-sudo mavproxy.py --master=/dev/ttyTHS1 --baudrate 57600 --aircraft my_drone
-```
-
 ## SSH connwction through telem radio
 ```
 sudo apt update
@@ -190,6 +202,11 @@ ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyTHS1 -b 921600 -V
 
 To run the offboard position control example, run the node on the companion computer
 ```
-ros2 launch px4_offboard offboard_hardware_position_control.launch.py
+ros2 launch px4_offboard cv_offboard.launch.py
 ```
-```
+
+
+TODO
+- test launch cv_offboard file on nano
+- make sure start_offboard.sh starts on start
+
