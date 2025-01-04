@@ -11,23 +11,33 @@ def generate_launch_description():
             executable='mavros_node',
             name='mavros',
             parameters=[
-                {'fcu_url': '/dev/ttyACM0:57600'},  # USB connection to Pixracer
-                {'gcs_url': ''},                   # Ground control station, leave empty for none
-                {'target_system_id': 1},           # System ID for Pixracer
-                {'target_component_id': 1},        # Component ID for Pixracer
+                {'fcu_url': '/dev/ttyACM0:57600'}, 
+                {'gcs_url': ''},
+                {'target_system_id': 1},
+                {'target_component_id': 1},
             ]
         ),
-        # Visualizer Node
-        #Node(
-         #   package='px4_offboard',
-         #   namespace='cv_offboard',
-         #   executable='visualizer',
-         #   name='visualizer'
-        #),
+
+        # Transform: map -> odom
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='map_to_odom',
+            arguments=['0', '0', '0', '0', '0', '0', 'map', 'odom']
+        ),
+
+        # Transform: odom -> base_link_frd
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            name='odom_to_base_link',
+            arguments=['0', '0', '0', '0', '0', '0', 'odom', 'base_link']
+        ),
+
         # Offboard Control Node
         Node(
             package='px4_offboard',
-            namespace='px4_2',
+            namespace='px4_1',
             executable='cv_offboard',
             name='cv_offboard'
         ),

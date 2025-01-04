@@ -205,8 +205,57 @@ To run the offboard position control example, run the node on the companion comp
 ros2 launch px4_offboard cv_offboard.launch.py
 ```
 
+Add startup script so it runs on boot
+
+create service file
+```
+sudo nano /etc/systemd/system/start-ros.service
+
+  GNU nano 4.8                                                  /etc/systemd/system/start-ros.service                                                             
+[Unit]
+Description=Start ROS 2 Offboard Node
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/jetson/start_offboard.sh
+Restart=on-failure
+User=jetson
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
+
+```
+create start script
+
+```
+sudo nano start_offboard.sh
+
+#!/bin/bash
+# Source ROS 2 environment
+source /opt/ros/foxy/setup.bash
+# Source workspace
+source /home/jetson/px4_ros_com_ws/install/setup.bash
+source /home/jetson/docker-build/paraceptor/install/setup.bash
+# Set ROS domain ID
+export ROS_DOMAIN_ID=0
+# Optimize Python
+export PYTHONOPTIMIZE=1
+# Run the offboard launch file
+ros2 launch px4_offboard cv_offboard.launch.py fcu_url:=/dev/ttyACM0:57600
+
+chmod +x /home/jetson/start_offboard.sh
+
+```
+
+check startup script is running correctly
+
+```
+sudo systemctl status start-ros.service
+```
 
 TODO
-- test launch cv_offboard file on nano
+- test launch cv_offboard file on nano - needs to be tested with battery
 - make sure start_offboard.sh starts on start
 
