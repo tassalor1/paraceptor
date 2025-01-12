@@ -46,7 +46,12 @@ def generate_launch_description():
 	    package='px4_offboard',  
 	    executable='system_stats_publisher',
 	    name='system_stats_publisher',
-	    output='screen',
+	),
+	# ros 2 mavlink Node
+        Node(
+	    package='px4_offboard',  
+	    executable='ros2mavlink',
+	    name='ros2mavlink',
 	),
 
     ])

@@ -3,20 +3,17 @@ from rclpy.node import Node
 from std_msgs.msg import String
 from jtop import jtop
 import json
-import pymavlink.mavutil as mavutil
 import struct
 
-class SystemStatsMavSender(Node):
+class SystemStatsPublisher(Node):
     def __init__(self):
         super().__init__('system_stats_publisher')
         
-        # Initialize telemetry connection
-        # Replace '/dev/ttyUSB0' with your telemetry port
-        self.mav = mavutil.mavlink_connection(
-            '/dev/ttyUSB0',
-            baud=57600
-        )
-        
+        self.stat_publisher = self.create_publisher(
+                String,
+                "mavros/system_stats", 
+                10
+                )        
         # Timer to fetch and publish stats
         self.timer = self.create_timer(2.0, self.publish_stats)
         
@@ -38,24 +35,21 @@ class SystemStatsMavSender(Node):
             
             # Pack stats into MAVLink message
             # Using STATUSTEXT message type for custom data
-            filtered_stats = {
-                'cpu_avg': cpu_avg,
-                'ram': stats.get("RAM", 0),
-                'gpu': stats.get("GPU", 0),
-                'fan': stats.get("fan", 0),
-                'temp_cpu': stats.get("Temp CPU", 0),
-                'temp_gpu': stats.get("Temp GPU", 0),
-            }
-            
-            # Convert to JSON and send as STATUSTEXT
+            filtered_stats = [
+		    cpu_avg,
+		    stats.get("RAM", 0),
+		    stats.get("GPU", 0), 
+		    stats.get("fan", 0),
+		    stats.get("Temp CPU", 0),
+		    stats.get("Temp GPU", 0)
+		]
             stats_json = json.dumps(filtered_stats)
-            self.mav.mav.statustext_send(
-                mavutil.mavlink.MAV_SEVERITY_INFO,
-                stats_json.encode()
-            )
+            msg = String()
+            msg.data = stats_json
+            self.stat_publisher.publish(msg)
             
-            self.get_logger().info(f"Sent MAVLink message: {stats_json}")
-
+            
+                        
     def destroy_node(self):
         self.jetson.close()
         self.mav.close()
@@ -63,7 +57,7 @@ class SystemStatsMavSender(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    node = SystemStatsMavSender()
+    node = SystemStatsPublisher()
     
     try:
         rclpy.spin(node)
