@@ -24,9 +24,9 @@ setup(
                 'uav_camera_det = px4_offboard.uav_camera_det:main',
                 'offboard_base_comm = px4_offboard.offboard_base_comm:main',
                 'cv_offboard = px4_offboard.cv_offboard:main',
-                'hardware_test = px4_offboard.hardware_test:main',
                 'simple_controller = velocity_controller.simple_controller:main',
-                'uav_detection = visual_guidance.uav_detection:main'
+                'uav_detection = visual_guidance.uav_detection:main',
+                'system_stats_publisher = px4_offboard.system_stats_publisher:main',
         ],
     },
 )

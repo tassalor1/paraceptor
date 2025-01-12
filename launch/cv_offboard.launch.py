@@ -12,10 +12,9 @@ def generate_launch_description():
             name='mavros',
             parameters=[
                 {'fcu_url': '/dev/ttyACM0:57600'}, 
-                {'gcs_url': ''},
                 {'target_system_id': 1},
                 {'target_component_id': 1},
-            ]
+            ],
         ),
 
         # Transform: map -> odom
@@ -41,5 +40,14 @@ def generate_launch_description():
             executable='cv_offboard',
             name='cv_offboard'
         ),
+
+        # System Stats Node
+        Node(
+	    package='px4_offboard',  
+	    executable='system_stats_publisher',
+	    name='system_stats_publisher',
+	    output='screen',
+	),
+
     ])
 

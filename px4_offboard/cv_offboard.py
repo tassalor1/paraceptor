@@ -59,11 +59,11 @@ class ReconControl(Node):
             qos_profile
         )
 
-        self.publisher_trajectory = self.create_publisher(
-            TrajectorySetpoint, 
-            f'/{namespace}/fmu/in/trajectory_setpoint', 
-            qos_profile
-        )
+        #self.publisher_trajectory = self.create_publisher(
+            #TrajectorySetpoint, 
+            #f'/{namespace}/fmu/in/trajectory_setpoint', 
+            #qos_profile
+        #)
 
         self.publisher_coords = self.create_publisher(
             Point, 
@@ -72,7 +72,7 @@ class ReconControl(Node):
         )
 
         # Timing
-        self.dt = 0.02  # 20ms
+        self.dt = 3 # 20ms
         self.timer = self.create_timer(self.dt, self.cmdloop_callback)
 
         # Circle parameters
@@ -141,17 +141,20 @@ class ReconControl(Node):
         if (self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and 
             self.arming_state == VehicleStatus.ARMING_STATE_ARMED):
 
-            x = self.radius * np.cos(self.theta)
-            y = self.radius * np.sin(self.theta)
-            z = -self.altitude  # PX4 uses negative altitude for "up"
+            #x = self.radius * np.cos(self.theta)
+            #y = self.radius * np.sin(self.theta)
+            #z = -self.altitude  # PX4 uses negative altitude for "up"
 
-            trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.position = [x, y, z]
-            trajectory_msg.yaw = self.theta  # Keep yaw in sync with circle angle
-            self.publisher_trajectory.publish(trajectory_msg)
+            #trajectory_msg = TrajectorySetpoint()
+            #trajectory_msg.position = [x, y, z]
+            #trajectory_msg.yaw = self.theta  # Keep yaw in sync with circle angle
+            #self.publisher_trajectory.publish(trajectory_msg)
 
+            #self.get_logger().info(
+                #f"Publishing trajectory: x={x:.3f}, y={y:.3f}, z={z:.3f}, yaw={self.theta:.3f}"
+            #)
             self.get_logger().info(
-                f"Publishing trajectory: x={x:.3f}, y={y:.3f}, z={z:.3f}, yaw={self.theta:.3f}"
+                f" we would be Publishing trajectory now"
             )
 
             # Increment angle

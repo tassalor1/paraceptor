@@ -196,6 +196,7 @@ This section is intended for running the offboard control node on a companion co
 
 If you are using a UART connection which goes into the pinouts on the board, start the micro-ros agent with the following comand
 ```
+sudo chmod 666 /dev/ttyTHS1
 source /opt/ros/foxy/setup.bash
 ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyTHS1 -b 921600 -V
 ```
@@ -254,8 +255,13 @@ check startup script is running correctly
 ```
 sudo systemctl status start-ros.service
 ```
+check LOGS
+```
+jurnalctl -u start-ros.service
 
-TODO
-- test launch cv_offboard file on nano - needs to be tested with battery
-- make sure start_offboard.sh starts on start
+OR
+
+cat /home/jetson/start_offboard.log
+```
+
 
