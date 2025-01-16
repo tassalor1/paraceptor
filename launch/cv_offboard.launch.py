@@ -11,7 +11,7 @@ def generate_launch_description():
             executable='mavros_node',
             name='mavros',
             parameters=[
-                {'fcu_url': '/dev/ttyACM0:57600'}, 
+                {'fcu_url': '/dev/ttyACM0:921600'}, 
                 {'target_system_id': 1},
                 {'target_component_id': 1},
             ],
