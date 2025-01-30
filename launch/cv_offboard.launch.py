@@ -38,7 +38,8 @@ def generate_launch_description():
             package='px4_offboard',
             namespace='px4_1',
             executable='cv_offboard',
-            name='cv_offboard'
+            name='cv_offboard',
+            output='screen'
         ),
 
         # System Stats Node

@@ -53,3 +53,10 @@ const static int kGpuId = 0;
 // If your image size is larger than 4096 * 3112, please increase this value
 const static int kMaxInputImageSize = 4096 * 3112;
 
+struct alignas(float) Detection {
+  float bbox[4];  // center_x center_y w h
+  float conf;  // bbox_conf * cls_conf
+  float class_id;
+  float mask[32];
+};
+

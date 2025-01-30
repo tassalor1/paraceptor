@@ -18,10 +18,17 @@ class Ros2Mavlink(Node):
 
         self.subscribe_rosout = self.create_subscription(
             Log, 
-            '/rosout', 
+            '/mavros/state', 
             self.handle_rosout, 
             10
         )
+
+        self.subcribe_set_point = self.create_subscription(
+                Log,
+                '/mavros/setpoint_position/local',
+                self.handle_rosout,
+                10
+                )
 
         self.subscribe_system_stats = self.create_subscription(
             String, 
@@ -35,7 +42,7 @@ class Ros2Mavlink(Node):
     def handle_rosout(self, ros_msg):
         try:
             status = StatusText()
-            status.severity = 6  # INFO level (same as your original MAV_SEVERITY_INFO)
+            status.severity = 4  # INFO level (same as your original MAV_SEVERITY_INFO)
             status.text = ros_msg.msg
             self.status_pub.publish(status)
         except Exception as e:

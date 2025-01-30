@@ -2,162 +2,130 @@
 
 import rclpy
 from rclpy.node import Node
-from rclpy.clock import Clock
-from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
-from px4_msgs.msg import (
-    OffboardControlMode,
-    TrajectorySetpoint,
-    VehicleStatus,
-    VehicleCommand
-)
+from geometry_msgs.msg import PoseStamped
+from mavros_msgs.msg import State
+from mavros_msgs.srv import CommandBool, SetMode
+from std_msgs.msg import Header
 
 class OffboardControl(Node):
-    def __init__(self, namespace='px4_1'):
+    def __init__(self):
         super().__init__('offboard_control')
         
-        # QoS matches typical PX4 defaults (best-effort, volatile)
-        qos_profile = QoSProfile(
-            reliability=QoSReliabilityPolicy.BEST_EFFORT,
-            durability=QoSDurabilityPolicy.VOLATILE,
-            history=QoSHistoryPolicy.KEEP_LAST,
-            depth=1
+        # Create publishers
+        self.position_pub = self.create_publisher(
+            PoseStamped,
+            '/mavros/setpoint_position/local',
+            10
         )
 
-        # Publishers
-        self.offboard_control_mode_pub = self.create_publisher(
-            OffboardControlMode,
-            f'/{namespace}/fmu/in/offboard_control_mode',
-            qos_profile
-        )
-        self.trajectory_setpoint_pub = self.create_publisher(
-            TrajectorySetpoint,
-            f'/{namespace}/fmu/in/trajectory_setpoint',
-            qos_profile
-        )
-        self.vehicle_command_pub = self.create_publisher(
-            VehicleCommand,
-            f'/{namespace}/fmu/in/vehicle_command',
-            qos_profile
+        # Create subscribers
+        self.state_sub = self.create_subscription(
+            State,
+            '/mavros/state',
+            self.state_callback,
+            10
         )
 
-        # Subscribers
-        self.vehicle_status_sub = self.create_subscription(
-            VehicleStatus,
-            f'/{namespace}/fmu/out/vehicle_status',
-            self.vehicle_status_callback,
-            qos_profile
-        )
+        # Create service clients
+        self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
+        self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
 
-        # Internal counters/states
-        self.offboard_setpoint_counter = 0
-        self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
-        self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
-        
-        # Timer to publish at 50Hz
-        self.timer = self.create_timer(0.02, self.timer_callback)
+        # Initialize variables
+        self.current_state = State()
+        self.pose = PoseStamped()
+        self.pose.pose.position.z = 2.0  # Target height of 2 meters
 
-        self.get_logger().info("OffboardControl node initialized.")
+        # Create timer for publishing setpoints
+        self.timer = self.create_timer(0.02, self.timer_callback)  # 50Hz
+        self.setpoint_counter = 0
 
-    def vehicle_status_callback(self, msg):
-        """Track changes to nav_state and arming_state and log them."""
-        old_nav = self.nav_state
-        old_arm = self.arming_state
-        
-        self.nav_state = msg.nav_state
-        self.arming_state = msg.arming_state
+        self.get_logger().info('Offboard control node initialized')
 
-        # Log new states whenever they change
-        if old_nav != self.nav_state or old_arm != self.arming_state:
+    def state_callback(self, msg: State):
+        """Callback for vehicle state updates"""
+        # Log state changes
+        if (msg.mode != self.current_state.mode or 
+            msg.armed != self.current_state.armed or 
+            msg.connected != self.current_state.connected):
+            
             self.get_logger().info(
-                f"[vehicle_status_callback]\n"
-                f"  Navigation State changed: {old_nav} -> {self.nav_state}\n"
-                f"  Arming State changed: {old_arm} -> {self.arming_state}"
+                f'State Update:\n'
+                f'  Connected: {msg.connected}\n'
+                f'  Armed: {msg.armed}\n'
+                f'  Mode: {msg.mode}'
             )
+        
+        self.current_state = msg
 
-    def publish_vehicle_command(self, command, param1=0.0, param2=0.0):
-        """Helper to send a command (arm, mode change, etc.) to PX4."""
-        msg = VehicleCommand()
-        msg.timestamp = int(Clock().now().nanoseconds / 1000)
-        msg.command = command
-        msg.param1 = float(param1)
-        msg.param2 = float(param2)
-        msg.target_system = 1
-        msg.target_component = 1
-        msg.source_system = 255
-        msg.source_component = 1
-        msg.from_external = True
+    async def arm(self):
+        """Send an arm command to the vehicle"""
+        while not self.arming_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn('Arming service not available, waiting...')
 
-        self.vehicle_command_pub.publish(msg)
-        self.get_logger().info(
-            f"[publish_vehicle_command] Command={command}, "
-            f"param1={param1}, param2={param2}"
-        )
+        request = CommandBool.Request()
+        request.value = True
 
-    def publish_offboard_control_mode(self):
-        """Publish OffboardControlMode with position enabled."""
-        msg = OffboardControlMode()
-        msg.timestamp = int(Clock().now().nanoseconds / 1000)
-        msg.position = True  # We want to control position
-        msg.velocity = False
-        msg.acceleration = False
-        msg.attitude = False
-        msg.body_rate = False
+        future = self.arming_client.call_async(request)
+        self.get_logger().info('Arm command sent')
+        return await future
 
-        self.offboard_control_mode_pub.publish(msg)
-        self.get_logger().debug("[publish_offboard_control_mode] Offboard control mode published.")
+    async def set_mode(self, mode: str):
+        """Send a mode change command to the vehicle"""
+        while not self.set_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().warn('Set mode service not available, waiting...')
 
-    def publish_trajectory_setpoint(self):
-        """Publish a setpoint for hovering at 2m above the ground in NED."""
-        msg = TrajectorySetpoint()
-        msg.timestamp = int(Clock().now().nanoseconds / 1000)
-        msg.position = [0.0, 0.0, -2.0]  # Hover at 2m altitude (NED uses negative Z)
-        msg.yaw = 0.0
-        # msg.velocity could be set if you want velocity mode
-        self.trajectory_setpoint_pub.publish(msg)
-        self.get_logger().debug("[publish_trajectory_setpoint] Hover at 2m setpoint published.")
+        request = SetMode.Request()
+        request.custom_mode = mode
 
-    def engage_offboard_mode(self):
-        """Request Offboard mode from PX4."""
-        # Command: VEHICLE_CMD_DO_SET_MODE, param1=1.0 (main mode), param2=6.0 (offboard submode)
-        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_DO_SET_MODE, 1.0, 6.0)
-        self.get_logger().info("[engage_offboard_mode] Offboard mode requested.")
+        future = self.set_mode_client.call_async(request)
+        self.get_logger().info(f'Mode change requested: {mode}')
+        return await future
 
-    def arm_vehicle(self):
-        """Arm the vehicle."""
-        # Command: VEHICLE_CMD_COMPONENT_ARM_DISARM, param1=1.0 (arm)
-        self.publish_vehicle_command(VehicleCommand.VEHICLE_CMD_COMPONENT_ARM_DISARM, 1.0)
-        self.get_logger().info("[arm_vehicle] Arm requested.")
+    async def timer_callback(self):
+        """Timer callback for publishing setpoints and handling mode changes"""
+        # Update timestamp
+        self.pose.header = Header()
+        self.pose.header.stamp = self.get_clock().now().to_msg()
+        self.pose.header.frame_id = "base_link"
 
-    def timer_callback(self):
-        """
-        Called at ~50Hz. Publishes offboard mode & setpoints continuously.
-        After 50 setpoints, requests Offboard mode.
-        Then, if Offboard is active, arms the vehicle (once).
-        """
-        self.publish_offboard_control_mode()
-        self.publish_trajectory_setpoint()
+        # Publish position setpoint
+        self.position_pub.publish(self.pose)
+        self.setpoint_counter += 1
 
-        self.offboard_setpoint_counter += 1
-        self.get_logger().debug(
-            f"[timer_callback] Published offboard setpoint #{self.offboard_setpoint_counter}"
-        )
+        # Log every 100 setpoints
+        if self.setpoint_counter % 100 == 0:
+            self.get_logger().info(f'Published setpoint #{self.setpoint_counter}')
 
-        # After some setpoints, request Offboard
-        if self.offboard_setpoint_counter == 50:
-            self.get_logger().info("[timer_callback] Enough setpoints published, attempting offboard...")
-            self.engage_offboard_mode()
+        # After 100 setpoints, try to switch to offboard mode and arm
+        if self.setpoint_counter == 100:
+            self.get_logger().info('Attempting transition to offboard mode...')
+            
+            # Switch to offboard mode
+            if self.current_state.mode != "OFFBOARD":
+                if await self.set_mode("OFFBOARD"):
+                    self.get_logger().info('Offboard mode enabled')
+                else:
+                    self.get_logger().warn('Failed to set OFFBOARD mode')
+                    return
 
-        # If Offboard is actually engaged and we're still not armed, arm the vehicle
-        if (self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD
-                and self.arming_state != VehicleStatus.ARMING_STATE_ARMED):
-            self.arm_vehicle()
+            # Arm the vehicle
+            if not self.current_state.armed:
+                if await self.arm():
+                    self.get_logger().info('Vehicle armed')
+                else:
+                    self.get_logger().warn('Failed to arm')
 
 def main(args=None):
     rclpy.init(args=args)
-    node = OffboardControl(namespace='px4_1')
-    rclpy.spin(node)
-    node.destroy_node()
-    rclpy.shutdown()
+    offboard_control = OffboardControl()
+    
+    try:
+        rclpy.spin(offboard_control)
+    except KeyboardInterrupt:
+        offboard_control.get_logger().info('Node stopped cleanly')
+    finally:
+        offboard_control.destroy_node()
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
