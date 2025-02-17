@@ -10,12 +10,12 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
    * Ubuntu 22.04
-   * ROS2 Humble
+   * ROS2 Foxy
    * Python 3.10
 
 ## Install PX4 Offboard and dependencies (one time setup)
 
-### Install the px4-offboard example from Jaeyoung-Lim
+### Install the parceptor
 
 ```
 cd ~
@@ -25,7 +25,6 @@ git clone https://github.com/tassalor1/paraceptor.git
 
 ### Install PX4 msg
 
-The `px4-offboard` example requires `px4_msgs` definitions:
 
 ```
 mkdir -p ~/px4_ros_com_ws/src && cd ~/px4_ros_com_ws/src
@@ -43,7 +42,7 @@ This should build. You may see some warnings interspered with the output.  As lo
 ## Install the micro_ros_agent  (one time setup)
 Follow these instructions to build the micro_ros_setup:  [Building micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup#building)
 ```
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 
 mkdir microros_ws && cd microros_ws
 

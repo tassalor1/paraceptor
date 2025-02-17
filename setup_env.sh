@@ -4,7 +4,7 @@
 conda activate ros_env
 
 # Source ROS setup.bash
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 
 # Source your workspace's setup.bash
 source ~/paraceptor/install/setup.bash

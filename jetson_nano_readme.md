@@ -12,11 +12,15 @@ This tutorial explains how to setup the jetson nano for FOXY/ Arducam IMX477 and
 
 install:
 ```
+sudo apt update
 sudo apt install python3-numpy
 sudo apt install libboost-python1.71-dev libboost-dev
 sudo apt install python3-rosdep2
+sudo apt install ros-foxy-mavros ros-foxy-mavros-extras
+sudo /opt/ros/foxy/lib/mavros/install_geographiclib_datasets.sh
 sudo apt install ros-foxy-cv-bridge
 pip3 install --user kconfiglib numpy==1.19.2 simple_pid timm
+pip3 install --upgrade setuptools
 ```
 
 ### Install the px4-offboard example
@@ -95,7 +99,7 @@ Configure the CSI Connector:
     Choose "Camera IMX477 Dual."
     Save pin changes and reboot when prompted.
 
-check cv2 is using gstreamer
+check cv2 is using gstreamer. if it says no use cv2 with it
 ```
 python3 -c "import cv2; print(cv2.getBuildInformation())"
 ```
@@ -104,6 +108,10 @@ python3 -c "import cv2; print(cv2.getBuildInformation())"
 for system stats
 ```
 jtop
+```
+list camera available frame rate
+```
+v4l2-ctl --list-formats-ext
 ```
 
 YOLO on Nano
@@ -146,22 +154,114 @@ source ~/px4_ros_com_ws/install/setup.bash
 LD_PRELOAD=/usr/lib/aarch64-linux-gnu/libgomp.so.1 python3 px4_offboard/uav_detection_nano.py
 ```
 
-## Connect Nano to pixracer
-
+## Connect Nano to pixracer through telem or usb
+Install pip and MAVProxy:
+```
+sudo apt-get install python3-pip -y
+pip3 install MAVProxy
+```
+Remove ModemManager and set serial permissions:
+## this is for telem1
+```
+sudo apt-get remove modemmanager -y
+sudo chown root:dialout /dev/ttyTHS1
+sudo chmod 660 /dev/ttyTHS1
+```
+Run MAVProxy: This should say its connected
+```
+sudo mavproxy.py --master=/dev/ttyTHS1 --baudrate 57600 --aircraft my_drone
+```
+## usb
 Remove ModemManager and set serial permissions:
 ```
 sudo apt-get remove modemmanager -y
 sudo chown root:dialout /dev/ttyTHS1
 sudo chmod 660 /dev/ttyTHS1
 ```
-Install pip and MAVProxy:
 ```
-sudo apt-get install python3-pip -y
-pip3 install MAVProxy
+mavproxy.py --master=/dev/ttyACM0 --baudrate 57600 --aircraft my_drone
 ```
-Run MAVProxy: This should say its connected
+## SSH connwction through telem radio
 ```
-sudo mavproxy.py --master=/dev/ttyTHS1 --baudrate 57600 --aircraft my_drone
+sudo apt update
+sudo apt install socat
 ```
-source install/local_setup.sh
 ```
+socat -d -d pty,link=/dev/ttyUSB0,raw,echo=0,waitslave tcp-l:14550,reuseaddr,fork
+```
+
+## Running on ros script on Hardware
+
+This section is intended for running the offboard control node on a companion computer. You will either need an SSH connection to run this node, or have a shell script to run the nodes on start up. 
+
+If you are using a UART connection which goes into the pinouts on the board, start the micro-ros agent with the following comand
+```
+sudo chmod 666 /dev/ttyTHS1
+source /opt/ros/foxy/setup.bash
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyTHS1 -b 921600 -V
+```
+
+To run the offboard position control example, run the node on the companion computer
+```
+ros2 launch px4_offboard cv_offboard.launch.py
+```
+
+Add startup script so it runs on boot
+
+create service file
+```
+sudo nano /etc/systemd/system/start-ros.service
+
+  GNU nano 4.8                                                  /etc/systemd/system/start-ros.service                                                             
+[Unit]
+Description=Start ROS 2 Offboard Node
+After=network.target
+
+[Service]
+Type=simple
+ExecStart=/bin/bash /home/jetson/start_offboard.sh
+Restart=on-failure
+User=jetson
+Environment=DISPLAY=:0
+
+[Install]
+WantedBy=multi-user.target
+
+```
+create start script
+
+```
+sudo nano start_offboard.sh
+
+#!/bin/bash
+# Source ROS 2 environment
+source /opt/ros/foxy/setup.bash
+# Source workspace
+source /home/jetson/px4_ros_com_ws/install/setup.bash
+source /home/jetson/docker-build/paraceptor/install/setup.bash
+# Set ROS domain ID
+export ROS_DOMAIN_ID=0
+# Optimize Python
+export PYTHONOPTIMIZE=1
+# Run the offboard launch file
+ros2 launch px4_offboard cv_offboard.launch.py fcu_url:=/dev/ttyACM0:57600
+
+chmod +x /home/jetson/start_offboard.sh
+
+```
+
+check startup script is running correctly
+
+```
+sudo systemctl status start-ros.service
+```
+check LOGS
+```
+jurnalctl -u start-ros.service
+
+OR
+
+cat /home/jetson/start_offboard.log
+```
+
+
