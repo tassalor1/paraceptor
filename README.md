@@ -17,16 +17,6 @@ Refer to doc for install
 sudo apt install ros-foxy-ros-gzgarden
 ```
 
-## venv
-## Create venv
-```
-python -m venv paraceptor_env
-pip install -r paraceptor/requirements.txt
-```
-```
-source paraceptor_env/bin/activate
-```
-
 ## RUN MULTI DRONE
 ## Terminal 1 
 ```
@@ -121,16 +111,4 @@ To verify how the system works, run
 
 ```
 ros2 run rqt_graph rqt_graph
-```
-
-*NOTE*: Switch to offboard control after manually doing takeoff. Currently automatic take-off is a bit buggy.
-
-*TODO*: Height not more than 3 metres. Fix that.
-
-### Hardware
-
-This section is intended for running the offboard control node on a companion computer, such as a Raspberry Pi or Nvidia Jetson/Xavier. You will either need an SSH connection to run this node, or have a shell script to run the nodes on start up. 
-
-If you are running this through a UART connection into the USB port, start the micro-ros agent with the following command
-
 ```
