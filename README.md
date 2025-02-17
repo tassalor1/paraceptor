@@ -5,7 +5,7 @@
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
    * Ubuntu 22.04
-   * ROS2 Humble
+   * ROS2 Foxy
    * Python 3.10
    * Torch for the yolov5 model
 
@@ -14,7 +14,7 @@ Refer to doc for install
 
 ## For CV ros-gzgarden ##
 ```
-sudo apt install ros-humble-ros-gzgarden
+sudo apt install ros-foxy-ros-gzgarden
 ```
 
 ## venv
@@ -39,7 +39,7 @@ ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-source /opt/ros/humble/setup.bash
+source /opt/ros/foxy/setup.bash
 ros2 run ros_gz_image image_bridge /camera
 ```
 
@@ -134,16 +134,3 @@ This section is intended for running the offboard control node on a companion co
 If you are running this through a UART connection into the USB port, start the micro-ros agent with the following command
 
 ```
-micro-ros-agent serial --dev /dev/ttyUSB0 -b 921600 -v
-```
-If you are using a UART connection which goes into the pinouts on the board, start the micro-ros agent with the following comand
-```
-micro-ros-agent serial --dev /dev/ttyTHS1 -b 921600 -V
-```
-
-To run the offboard position control example, run the node on the companion computer
-```
-ros2 launch px4_offboard offboard_hardware_position_control.launch.py
-```
-
-
