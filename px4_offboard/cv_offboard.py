@@ -5,14 +5,14 @@ from rclpy.node import Node
 from geometry_msgs.msg import PoseStamped
 from mavros_msgs.msg import State
 from mavros_msgs.srv import CommandBool, SetMode
-from std_msgs.msg import Header
+import sys
 
-class OffboardControl(Node):
+class CVOffboardControl(Node):
     def __init__(self):
-        super().__init__('offboard_control')
+        super().__init__('cv_offboard')
         
         # Create publishers
-        self.position_pub = self.create_publisher(
+        self.local_pos_pub = self.create_publisher(
             PoseStamped,
             '/mavros/setpoint_position/local',
             10
@@ -30,103 +30,79 @@ class OffboardControl(Node):
         self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
         self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
 
+        # Wait for services synchronously
+        self.ensure_service_availability()
+
         # Initialize variables
         self.current_state = State()
         self.pose = PoseStamped()
-        self.pose.pose.position.z = 2.0  # Target height of 2 meters
+        self.pose.pose.position.x = 0.0
+        self.pose.pose.position.y = 0.0
+        self.pose.pose.position.z = 2.0  # Target height
 
-        # Create timer for publishing setpoints
-        self.timer = self.create_timer(0.02, self.timer_callback)  # 50Hz
-        self.setpoint_counter = 0
+        # Create timer for publishing setpoints at 10Hz
+        self.timer = self.create_timer(0.1, self.timer_callback)
+        self.last_request = self.get_clock().now()
 
-        self.get_logger().info('Offboard control node initialized')
+        self.get_logger().info('Offboard control node started')
 
-    def state_callback(self, msg: State):
-        """Callback for vehicle state updates"""
-        # Log state changes
-        if (msg.mode != self.current_state.mode or 
-            msg.armed != self.current_state.armed or 
-            msg.connected != self.current_state.connected):
-            
-            self.get_logger().info(
-                f'State Update:\n'
-                f'  Connected: {msg.connected}\n'
-                f'  Armed: {msg.armed}\n'
-                f'  Mode: {msg.mode}'
-            )
-        
+    def ensure_service_availability(self):
+        while not self.arming_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for Arming service...')
+        self.get_logger().info('Arming service is now available.')
+        while not self.set_mode_client.wait_for_service(timeout_sec=1.0):
+            self.get_logger().info('Waiting for Set mode service...')
+        self.get_logger().info('Set mode service is now available.')
+
+    def state_callback(self, msg):
         self.current_state = msg
 
-    async def arm(self):
-        """Send an arm command to the vehicle"""
-        while not self.arming_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().warn('Arming service not available, waiting...')
-
-        request = CommandBool.Request()
-        request.value = True
-
-        future = self.arming_client.call_async(request)
-        self.get_logger().info('Arm command sent')
-        return await future
-
-    async def set_mode(self, mode: str):
-        """Send a mode change command to the vehicle"""
-        while not self.set_mode_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().warn('Set mode service not available, waiting...')
-
-        request = SetMode.Request()
-        request.custom_mode = mode
-
-        future = self.set_mode_client.call_async(request)
-        self.get_logger().info(f'Mode change requested: {mode}')
-        return await future
-
-    async def timer_callback(self):
-        """Timer callback for publishing setpoints and handling mode changes"""
-        # Update timestamp
-        self.pose.header = Header()
+    def timer_callback(self):
+        # Update timestamp and publish position setpoint
         self.pose.header.stamp = self.get_clock().now().to_msg()
-        self.pose.header.frame_id = "base_link"
+        self.pose.header.frame_id = "map"
+        self.local_pos_pub.publish(self.pose)
 
-        # Publish position setpoint
-        self.position_pub.publish(self.pose)
-        self.setpoint_counter += 1
-
-        # Log every 100 setpoints
-        if self.setpoint_counter % 100 == 0:
-            self.get_logger().info(f'Published setpoint #{self.setpoint_counter}')
-
-        # After 100 setpoints, try to switch to offboard mode and arm
-        if self.setpoint_counter == 100:
-            self.get_logger().info('Attempting transition to offboard mode...')
-            
-            # Switch to offboard mode
+        # Every 5 seconds, attempt mode change or arming
+        if (self.get_clock().now() - self.last_request).nanoseconds / 1e9 > 5.0:
             if self.current_state.mode != "OFFBOARD":
-                if await self.set_mode("OFFBOARD"):
-                    self.get_logger().info('Offboard mode enabled')
-                else:
-                    self.get_logger().warn('Failed to set OFFBOARD mode')
-                    return
+                self.set_mode("OFFBOARD")
+            elif not self.current_state.armed:
+                self.arm()
+            self.last_request = self.get_clock().now()
 
-            # Arm the vehicle
-            if not self.current_state.armed:
-                if await self.arm():
-                    self.get_logger().info('Vehicle armed')
-                else:
-                    self.get_logger().warn('Failed to arm')
+    def arm(self):
+        self.get_logger().info("Arming...")
+        req = CommandBool.Request()
+        req.value = True
+        future = self.arming_client.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
 
-def main(args=None):
-    rclpy.init(args=args)
-    offboard_control = OffboardControl()
+    def set_mode(self, mode):
+        self.get_logger().info(f"Setting mode to {mode}...")
+        req = SetMode.Request()
+        req.custom_mode = mode
+        future = self.set_mode_client.call_async(req)
+        rclpy.spin_until_future_complete(self, future)
+
+    def move_to(self, x, y, z):
+        self.pose.pose.position.x = x
+        self.pose.pose.position.y = y
+        self.pose.pose.position.z = z
+        self.get_logger().info(f'Moving to position: x={x}, y={y}, z={z}')
+
+def main():
+    rclpy.init()
+    offboard = CVOffboardControl()
     
     try:
-        rclpy.spin(offboard_control)
+        rclpy.spin(offboard)
     except KeyboardInterrupt:
-        offboard_control.get_logger().info('Node stopped cleanly')
+        offboard.get_logger().info('Stopping offboard control...')
     finally:
-        offboard_control.destroy_node()
+        offboard.set_mode("AUTO.LOITER")
+        offboard.destroy_node()
         rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
-

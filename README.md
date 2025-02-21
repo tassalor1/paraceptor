@@ -5,7 +5,7 @@
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
    * Ubuntu 22.04
-   * ROS2 Foxy
+   * ROS2 Humble
    * Python 3.10
    * Torch for the yolov5 model
 
@@ -14,7 +14,7 @@ Refer to doc for install
 
 ## For CV ros-gzgarden ##
 ```
-sudo apt install ros-foxy-ros-gzgarden
+sudo apt install ros-humble-ros-gzgarden
 ```
 
 ## RUN MULTI DRONE
@@ -29,7 +29,7 @@ ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-source /opt/ros/foxy/setup.bash
+source /opt/ros/humble/setup.bash
 ros2 run ros_gz_image image_bridge /camera
 ```
 
@@ -41,7 +41,12 @@ export PATH=$PATH:~/PX4-Autopilot/build/px4_sitl_default/bin
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
+PX4_GZ_WORLD=baylands 
 PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="7,0,0,0,0,0" PX4_SIM_MODEL=standard_vtol ./build/px4_sitl_default/bin/px4 -i 1
+```
+
+```
+pkill -f "gz sim"
 ```
 
 ## Terminal 5 Drone 2 Inteceptor
@@ -50,9 +55,10 @@ cd ~/PX4-Autopilot
 source ~/PX4-Autopilot/install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-export GZ_SIM_RESOURCE_PATH=/PX4-Autopilot/Tools/sitl_gazebo/models
+export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
 PX4_SYS_AUTOSTART=4001 \
 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" \
+PX4_GZ_WORLD=baylands \
 PX4_SIM_MODEL=x500_mono_cam \
 ./build/px4_sitl_default/bin/px4 -i 2
 ```
@@ -83,7 +89,7 @@ export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
-ros2 launch px4_offboard offboard_position_control.launch.py
+ros2 launch px4_offboard cv_offboard.launch.py sim:=true
 ```
 ## After script changes #####################
 ```
@@ -111,3 +117,10 @@ To verify how the system works, run
 ```
 ros2 run rqt_graph rqt_graph
 ```
+
+*NOTE*: Switch to offboard control after manually doing takeoff. Currently automatic take-off is a bit buggy.
+
+*TODO*: Height not more than 3 metres. Fix that.
+
+
+

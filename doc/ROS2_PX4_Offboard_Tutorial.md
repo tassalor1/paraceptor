@@ -42,7 +42,7 @@ This should build. You may see some warnings interspered with the output.  As lo
 ## Install the micro_ros_agent  (one time setup)
 Follow these instructions to build the micro_ros_setup:  [Building micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup#building)
 ```
-source /opt/ros/foxy/setup.bash
+source /opt/ros/humble/setup.bash
 
 mkdir microros_ws && cd microros_ws
 
