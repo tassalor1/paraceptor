@@ -76,7 +76,7 @@ source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
 export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
-ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
+ros2 run micro_ros_agent micro_ros_agent serial --dev /dev/ttyACM0 -b 921600 
 ```
 
 ## Run offboard 

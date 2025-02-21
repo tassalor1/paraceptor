@@ -1,108 +1,77 @@
 #!/usr/bin/env python3
-
 import rclpy
 from rclpy.node import Node
-from geometry_msgs.msg import PoseStamped
-from mavros_msgs.msg import State
-from mavros_msgs.srv import CommandBool, SetMode
-import sys
+from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
 
-class CVOffboardControl(Node):
+class PX4OffboardControl(Node):
     def __init__(self):
-        super().__init__('cv_offboard')
-        
-        # Create publishers
-        self.local_pos_pub = self.create_publisher(
-            PoseStamped,
-            '/mavros/setpoint_position/local',
-            10
-        )
+        super().__init__('px4_offboard_control')
+        # Publishers for native PX4 offboard messages
+        self.offb_ctrl_pub = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
+        self.traj_pub = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', 10)
+        self.cmd_pub = self.create_publisher(VehicleCommand, '/fmu/in/vehicle_command', 10)
 
-        # Create subscribers
-        self.state_sub = self.create_subscription(
-            State,
-            '/mavros/state',
-            self.state_callback,
-            10
-        )
-
-        # Create service clients
-        self.arming_client = self.create_client(CommandBool, '/mavros/cmd/arming')
-        self.set_mode_client = self.create_client(SetMode, '/mavros/set_mode')
-
-        # Wait for services synchronously
-        self.ensure_service_availability()
-
-        # Initialize variables
-        self.current_state = State()
-        self.pose = PoseStamped()
-        self.pose.pose.position.x = 0.0
-        self.pose.pose.position.y = 0.0
-        self.pose.pose.position.z = 2.0  # Target height
-
-        # Create timer for publishing setpoints at 10Hz
-        self.timer = self.create_timer(0.1, self.timer_callback)
-        self.last_request = self.get_clock().now()
-
-        self.get_logger().info('Offboard control node started')
-
-    def ensure_service_availability(self):
-        while not self.arming_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for Arming service...')
-        self.get_logger().info('Arming service is now available.')
-        while not self.set_mode_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info('Waiting for Set mode service...')
-        self.get_logger().info('Set mode service is now available.')
-
-    def state_callback(self, msg):
-        self.current_state = msg
+        self.setpoint_count = 0
+        self.commands_sent = False
+        self.timer = self.create_timer(0.05, self.timer_callback)  # 20 Hz
 
     def timer_callback(self):
-        # Update timestamp and publish position setpoint
-        self.pose.header.stamp = self.get_clock().now().to_msg()
-        self.pose.header.frame_id = "map"
-        self.local_pos_pub.publish(self.pose)
+        now = self.get_clock().now()
+        # Publish offboard control mode (enable position control)
+        offb_mode = OffboardControlMode()
+        offb_mode.timestamp = now.nanoseconds // 1000  # in microseconds
+        offb_mode.position = True
+        offb_mode.velocity = False
+        offb_mode.acceleration = False
+        offb_mode.attitude = False
+        offb_mode.body_rate = False
+        self.offb_ctrl_pub.publish(offb_mode)
 
-        # Every 5 seconds, attempt mode change or arming
-        if (self.get_clock().now() - self.last_request).nanoseconds / 1e9 > 5.0:
-            if self.current_state.mode != "OFFBOARD":
-                self.set_mode("OFFBOARD")
-            elif not self.current_state.armed:
-                self.arm()
-            self.last_request = self.get_clock().now()
+        # Publish trajectory setpoint (target position: 0,0,5)
+        traj = TrajectorySetpoint()
+        traj.timestamp = now.nanoseconds // 1000
+        traj.position[0] = 0.0
+        traj.position[1] = 0.0
+        traj.position[2] = 5.0
+        # Optionally set velocities, accelerations, yaw, etc. to zero.
+        self.traj_pub.publish(traj)
 
-    def arm(self):
-        self.get_logger().info("Arming...")
-        req = CommandBool.Request()
-        req.value = True
-        future = self.arming_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
+        self.setpoint_count += 1
 
-    def set_mode(self, mode):
-        self.get_logger().info(f"Setting mode to {mode}...")
-        req = SetMode.Request()
-        req.custom_mode = mode
-        future = self.set_mode_client.call_async(req)
-        rclpy.spin_until_future_complete(self, future)
+        # After ~5 seconds (100 setpoints) send offboard and arm commands once.
+        if self.setpoint_count >= 100 and not self.commands_sent:
+            self.send_offboard_mode_command()
+            self.send_arm_command()
+            self.commands_sent = True
 
-    def move_to(self, x, y, z):
-        self.pose.pose.position.x = x
-        self.pose.pose.position.y = y
-        self.pose.pose.position.z = z
-        self.get_logger().info(f'Moving to position: x={x}, y={y}, z={z}')
+    def send_offboard_mode_command(self):
+        cmd = VehicleCommand()
+        cmd.timestamp = self.get_clock().now().nanoseconds // 1000
+        # VEHICLE_CMD_DO_SET_MODE is usually 176; adjust as needed.
+        cmd.command = VehicleCommand.VEHICLE_CMD_DO_SET_MODE  
+        # Param1 could be set to a mode number (e.g. 1 for offboard) – check your PX4 config.
+        cmd.param1 = 1.0  
+        self.cmd_pub.publish(cmd)
+        self.get_logger().info("Offboard mode command sent.")
 
-def main():
-    rclpy.init()
-    offboard = CVOffboardControl()
-    
+    def send_arm_command(self):
+        cmd = VehicleCommand()
+        cmd.timestamp = self.get_clock().now().nanoseconds // 1000
+        # VEHICLE_ARM_DISARM is usually 400; adjust as needed.
+        cmd.command = VehicleCommand.VEHICLE_ARM_DISARM  
+        cmd.param1 = 1.0  # 1 to arm
+        self.cmd_pub.publish(cmd)
+        self.get_logger().info("Arm command sent.")
+
+def main(args=None):
+    rclpy.init(args=args)
+    node = PX4OffboardControl()
     try:
-        rclpy.spin(offboard)
+        rclpy.spin(node)
     except KeyboardInterrupt:
-        offboard.get_logger().info('Stopping offboard control...')
-    finally:
-        offboard.set_mode("AUTO.LOITER")
-        offboard.destroy_node()
-        rclpy.shutdown()
+        pass
+    node.destroy_node()
+    rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

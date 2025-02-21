@@ -71,17 +71,8 @@ chmod +x ./QGroundControl.AppImage
 ```
 Click Takeoff from left hand menu, then slide to confirm
 
-## Terminal 6 
-```
-cd ~/paraceptor
-source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-source ../px4_ros_com_ws/src/install/setup.bash
-python3 px4_offboard/uav_detection_v2.py
-```
-You may have to replace the path to best_fixed.pt in line 27 of the uav_detection_v2.py, so that the path is appropriate to your local system. 
-## Terminal 7
+
+## Terminal 6
 ```
 cd ~/paraceptor
 source install/setup.bash
@@ -89,7 +80,8 @@ export ROS_DOMAIN_ID=0
 export PYTHONOPTIMIZE=1
 source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
-ros2 launch px4_offboard cv_offboard.launch.py sim:=true
+source ~/microros_ws/install/local_setup.bash
+ros2 launch px4_offboard cv_offboard.launch.py
 ```
 ## After script changes #####################
 ```
