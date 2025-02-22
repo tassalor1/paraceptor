@@ -28,9 +28,6 @@ def generate_launch_description():
             namespace='px4_2',
             executable='cv_offboard',
             name='cv_offboard',
-            parameters=[
-                {'use_sim_time': sim}
-            ],
             output='screen'
         ),
 

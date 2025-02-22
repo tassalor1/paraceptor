@@ -1,77 +1,96 @@
 #!/usr/bin/env python3
+
 import rclpy
+import numpy as np
 from rclpy.node import Node
-from px4_msgs.msg import OffboardControlMode, TrajectorySetpoint, VehicleCommand
+from rclpy.clock import Clock
+from rclpy.qos import QoSProfile, QoSReliabilityPolicy, QoSHistoryPolicy, QoSDurabilityPolicy
 
-class PX4OffboardControl(Node):
-    def __init__(self):
-        super().__init__('px4_offboard_control')
-        # Publishers for native PX4 offboard messages
-        self.offb_ctrl_pub = self.create_publisher(OffboardControlMode, '/fmu/in/offboard_control_mode', 10)
-        self.traj_pub = self.create_publisher(TrajectorySetpoint, '/fmu/in/trajectory_setpoint', 10)
-        self.cmd_pub = self.create_publisher(VehicleCommand, '/fmu/in/vehicle_command', 10)
+from px4_msgs.msg import OffboardControlMode
+from px4_msgs.msg import TrajectorySetpoint
+from px4_msgs.msg import VehicleStatus
 
+
+class CVOffboardControl(Node):
+
+    def __init__(self,namespace):
+        super().__init__('cv_offboard')
+        qos_profile = QoSProfile(
+            reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
+            durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_TRANSIENT_LOCAL,
+            history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
+            depth=1
+        )
+
+        self.status_sub = self.create_subscription(
+            VehicleStatus,
+            f'/{namespace}/fmu/out/vehicle_status_v1',
+            self.vehicle_status_callback,
+            qos_profile)
+        
+        self.publisher_offboard_mode = self.create_publisher(OffboardControlMode, f'/{namespace}/fmu/in/offboard_control_mode', qos_profile)
+        self.publisher_trajectory = self.create_publisher(TrajectorySetpoint, f'/{namespace}/fmu/in/trajectory_setpoint', qos_profile)
+        timer_period = 0.02  # seconds
+        self.timer = self.create_timer(timer_period, self.cmdloop_callback)
+        self.dt = timer_period
+        self.declare_parameter('radius', 10.0)
+        self.declare_parameter('omega', 5.0)
+        self.declare_parameter('altitude', 5.0)
+        self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
+        self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
+        # Note: no parameter callbacks are used to prevent sudden inflight changes of radii and omega 
+        # which would result in large discontinuities in setpoints
+        self.theta = 0.0
+        self.radius = self.get_parameter('radius').value
+        self.omega = self.get_parameter('omega').value
+        self.altitude = self.get_parameter('altitude').value
         self.setpoint_count = 0
-        self.commands_sent = False
-        self.timer = self.create_timer(0.05, self.timer_callback)  # 20 Hz
+ 
+    def vehicle_status_callback(self, msg):
+        # TODO: handle NED->ENU transformation
+        print("NAV_STATUS: ", msg.nav_state)
+        print("  - offboard status: ", VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+        self.nav_state = msg.nav_state
+        self.arming_state = msg.arming_state
 
-    def timer_callback(self):
-        now = self.get_clock().now()
-        # Publish offboard control mode (enable position control)
-        offb_mode = OffboardControlMode()
-        offb_mode.timestamp = now.nanoseconds // 1000  # in microseconds
-        offb_mode.position = True
-        offb_mode.velocity = False
-        offb_mode.acceleration = False
-        offb_mode.attitude = False
-        offb_mode.body_rate = False
-        self.offb_ctrl_pub.publish(offb_mode)
-
-        # Publish trajectory setpoint (target position: 0,0,5)
-        traj = TrajectorySetpoint()
-        traj.timestamp = now.nanoseconds // 1000
-        traj.position[0] = 0.0
-        traj.position[1] = 0.0
-        traj.position[2] = 5.0
-        # Optionally set velocities, accelerations, yaw, etc. to zero.
-        self.traj_pub.publish(traj)
+    def cmdloop_callback(self):
+        # Publish offboard control mode
+        offboard_msg = OffboardControlMode()
+        offboard_msg.timestamp = int(Clock().now().nanoseconds / 1000)
+        offboard_msg.position = True
+        offboard_msg.velocity = False
+        offboard_msg.acceleration = False
+        self.publisher_offboard_mode.publish(offboard_msg)
 
         self.setpoint_count += 1
 
-        # After ~5 seconds (100 setpoints) send offboard and arm commands once.
-        if self.setpoint_count >= 100 and not self.commands_sent:
-            self.send_offboard_mode_command()
-            self.send_arm_command()
-            self.commands_sent = True
+        # Ensure at least 100 setpoints before switching to offboard
+        if self.setpoint_count < 100:
+            return
 
-    def send_offboard_mode_command(self):
-        cmd = VehicleCommand()
-        cmd.timestamp = self.get_clock().now().nanoseconds // 1000
-        # VEHICLE_CMD_DO_SET_MODE is usually 176; adjust as needed.
-        cmd.command = VehicleCommand.VEHICLE_CMD_DO_SET_MODE  
-        # Param1 could be set to a mode number (e.g. 1 for offboard) – check your PX4 config.
-        cmd.param1 = 1.0  
-        self.cmd_pub.publish(cmd)
-        self.get_logger().info("Offboard mode command sent.")
+        # Check if the drone is armed and in offboard mode
+        if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
+            trajectory_msg = TrajectorySetpoint()
+            trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
+            trajectory_msg.position[0] = self.radius * np.cos(self.theta)
+            trajectory_msg.position[1] = self.radius * np.sin(self.theta)
+            trajectory_msg.position[2] = -self.altitude
+            self.publisher_trajectory.publish(trajectory_msg)
 
-    def send_arm_command(self):
-        cmd = VehicleCommand()
-        cmd.timestamp = self.get_clock().now().nanoseconds // 1000
-        # VEHICLE_ARM_DISARM is usually 400; adjust as needed.
-        cmd.command = VehicleCommand.VEHICLE_ARM_DISARM  
-        cmd.param1 = 1.0  # 1 to arm
-        self.cmd_pub.publish(cmd)
-        self.get_logger().info("Arm command sent.")
+            self.theta += self.omega * self.dt
+
+
 
 def main(args=None):
     rclpy.init(args=args)
-    node = PX4OffboardControl()
-    try:
-        rclpy.spin(node)
-    except KeyboardInterrupt:
-        pass
-    node.destroy_node()
+    namespace='px4_2'
+    offboard_control = CVOffboardControl(namespace)
+
+    rclpy.spin(offboard_control)
+
+    offboard_control.destroy_node()
     rclpy.shutdown()
+
 
 if __name__ == '__main__':
     main()

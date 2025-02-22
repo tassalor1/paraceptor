@@ -8,9 +8,34 @@
    * ROS2 Humble
    * Python 3.10
    * Torch for the yolov5 model
-
+### Setup Environment Variables in .bashrc
+To avoid manually sourcing workspaces every time, add the following lines to your ~/.bashrc file:
 Refer to doc for install
 
+```
+# ROS2 Setup
+source /opt/ros/humble/setup.bash
+
+# PX4 ROS2 workspace
+source ~/px4_ros_com_ws/install/setup.bash
+
+# Micro-ROS workspace
+source ~/microros_ws/install/local_setup.bash
+
+# Set environment variables
+export ROS_DOMAIN_ID=0
+export PYTHONOPTIMIZE=1
+
+# PX4 and Gazebo Setup
+export GZ_VERSION=harmonic
+export PX4_PATH=~/PX4-Autopilot
+export PX4_GZ_WORLDS=${PX4_PATH}/Tools/simulation/worlds
+export GZ_SIM_RESOURCE_PATH=${PX4_PATH}/Tools/simulation/gazebo/sitl_gazebo/models
+export PATH=$PATH:${PX4_PATH}/Tools/simulation/gazebo/sitl_gazebo/bin
+```
+```
+source ~/.bashrc
+```
 
 ## For CV ros-gzgarden ##
 ```
@@ -21,28 +46,22 @@ sudo apt install ros-humble-ros-gzgarden
 ## Terminal 1 
 ```
 cd ~/microros_ws
-source ../px4_ros_com_ws/src/install/setup.bash
 source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
 ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
 ```
-source /opt/ros/humble/setup.bash
 ros2 run ros_gz_image image_bridge /camera
 ```
 
 ## Terminal 3 Drone 1 Recon
 ```
 cd ~/PX4-Autopilot
-source ~/PX4-Autopilot/install/setup.bash
-export PATH=$PATH:~/PX4-Autopilot/build/px4_sitl_default/bin
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
-PX4_GZ_WORLD=baylands 
-PX4_SYS_AUTOSTART=4001 PX4_GZ_MODEL_POSE="7,0,0,0,0,0" PX4_SIM_MODEL=standard_vtol ./build/px4_sitl_default/bin/px4 -i 1
+PX4_GZ_WORLD=baylands \
+PX4_SYS_AUTOSTART=4001 \
+PX4_GZ_MODEL_POSE="7,0,0,0,0,0" \
+PX4_SIM_MODEL=standard_vtol \
+./build/px4_sitl_default/bin/px4 -i 1
 ```
 
 ```
@@ -52,10 +71,6 @@ pkill -f "gz sim"
 ## Terminal 5 Drone 2 Inteceptor
 ```
 cd ~/PX4-Autopilot
-source ~/PX4-Autopilot/install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-export GZ_SIM_RESOURCE_PATH=~/PX4-Autopilot/Tools/sitl_gazebo/models
 PX4_SYS_AUTOSTART=4001 \
 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" \
 PX4_GZ_WORLD=baylands \
@@ -65,8 +80,6 @@ PX4_SIM_MODEL=x500_mono_cam \
 
 ## Terminal 5 from home directory 
 ```
-source install/setup.bash
-chmod +x ./QGroundControl.AppImage
 ./QGroundControl.AppImage 
 ```
 Click Takeoff from left hand menu, then slide to confirm
@@ -75,12 +88,6 @@ Click Takeoff from left hand menu, then slide to confirm
 ## Terminal 6
 ```
 cd ~/paraceptor
-source install/setup.bash
-export ROS_DOMAIN_ID=0
-export PYTHONOPTIMIZE=1
-source ../px4_ros_com_ws/src/install/setup.bash
-source install/setup.bash
-source ~/microros_ws/install/local_setup.bash
 ros2 launch px4_offboard cv_offboard.launch.py
 ```
 ## After script changes #####################

@@ -10,7 +10,7 @@ This tutorial explains how to interface ROS2 with PX4 (SITL) using DDS.
    * [PX4-Autopilot downloaded](https://docs.px4.io/main/en/dev_setup/building_px4.html)
    * [QGroundControl installed](https://docs.qgroundcontrol.com/master/en/getting_started/download_and_install.html)
    * Ubuntu 22.04
-   * ROS2 Foxy
+   * ROS2 Humble
    * Python 3.10
 
 ## Install PX4 Offboard and dependencies (one time setup)
@@ -24,11 +24,18 @@ git clone https://github.com/tassalor1/paraceptor.git
 ```
 
 ### Install PX4 msg
-
+PX4 uses custom ROS2 messages for offboard control. Install them first:
 
 ```
 mkdir -p ~/px4_ros_com_ws/src && cd ~/px4_ros_com_ws/src
 git clone https://github.com/PX4/px4_msgs.git
+```
+Install px4_ros_com (PX4 ↔ ROS2 Bridge)
+
+This bridges PX4 with ROS2 using DDS.
+```
+cd ~/px4_ros_com_ws/src
+git clone https://github.com/PX4/px4_ros_com.git
 ```
 
 Build:
@@ -37,7 +44,15 @@ Build:
 colcon build
 ```
 
-This should build. You may see some warnings interspered with the output.  As long as there are no __*errors*__ you should be OK..
+Source the ROS2 Workspace
+```
+source ~/px4_ros_com_ws/install/setup.bash
+```
+Ensure that ROS2 recognizes PX4 messages:
+```
+ros2 interface list | grep px4_msgs
+```
+If px4_msgs/msg/VehicleStatus appears, you're good!
 
 ## Install the micro_ros_agent  (one time setup)
 Follow these instructions to build the micro_ros_setup:  [Building micro_ros_setup](https://github.com/micro-ROS/micro_ros_setup#building)
