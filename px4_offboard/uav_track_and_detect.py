@@ -13,6 +13,41 @@ from cv_bridge import CvBridge
 import cv2
 import torch
 import numpy as np
+import sys
+import os
+import argparse
+
+parser = argparse.ArgumentParser(description='UAV tracking and detection')
+parser.add_argument('--sim', action='store_true', help='Run in simulation mode')
+args = parser.parse_args()
+sim = args.sim
+
+if not sim:
+    # Get the absolute path to the 'paraceptor' directory (root)
+    BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # Add yolov5 to Python path
+    YOLOV5_PATH = os.path.join(BASE_DIR, "yolov5")
+    sys.path.append(YOLOV5_PATH)
+    # Now you can import it
+    from yoloDet import YoloTRT
+
+parser = argparse.ArgumentParser(description='UAV tracking and detection')
+parser.add_argument('--sim', action='store_true', help='Run in simulation mode')
+args = parser.parse_args()
+sim = args.sim
+
+print(f"Running in {'simulation' if sim else 'hardware'} mode")
+
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+YOLOV5_PATH = os.path.join(BASE_DIR, "yolov5")
+sys.path.append(YOLOV5_PATH)
+WEIGHTS_PATH = os.path.join(YOLOV5_PATH, "weights", "best.pt")
+print(f"Using weights from: {WEIGHTS_PATH}")
+
+# for nano
+if not sim:
+    from yoloDet import YoloTRT
+
 
 class ImageProcessor:
     """
@@ -29,9 +64,10 @@ class ImageProcessor:
         propeller_mask_height_ratio, 
         propeller_mask_width_ratio, 
         vertical_offset_ratio,
-        yolo_weights_path,
+        yolo_weights_path=None,
         confidence_threshold=0.5,
-        re_detect_interval=30
+        re_detect_interval=30,
+        simulation_mode=False
     ):
         """
         :param propeller_mask_height_ratio: float, ratio of height to mask out propeller area
@@ -40,19 +76,30 @@ class ImageProcessor:
         :param yolo_weights_path: str, path to the YOLO weights
         :param confidence_threshold: float, threshold for YOLO detection confidence
         :param re_detect_interval: int, how many frames to wait before forcing a new YOLO detection
+        :param simulation_mode: bool, whether to run in simulation mode
         """
         self.propeller_mask_height_ratio = propeller_mask_height_ratio
         self.propeller_mask_width_ratio = propeller_mask_width_ratio
         self.vertical_offset_ratio = vertical_offset_ratio
         self.confidence_threshold = confidence_threshold
         self.re_detect_interval = re_detect_interval
+        self.simulation_mode = simulation_mode
 
-        # Load YOLO model (this uses Torch Hub)
-        self.model = torch.hub.load(
-            'ultralytics/yolov5', 
-            'custom', 
-            path=yolo_weights_path
-        )
+        # Load YOLO model based on simulation mode
+        if self.simulation_mode:
+            print("Running in simulation mode with PyTorch model")
+            # self.model = torch.hub.load(
+            #     'ultralytics/yolov5', 
+            #     'custom', 
+            #     path=yolo_weights_path
+            # )
+            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+        else:
+            print("Running in hardware mode with TensorRT model")
+            library = "yolov5/weights/libmyplugins.so"
+            engine = "yolov5/weights/yolov5s.engine"
+            self.model = YoloTRT(library=library, engine=engine, conf=0.5, yolo_ver="v5")
+
 
         # -----------------------------
         # Tracking-related members
@@ -118,9 +165,17 @@ class ImageProcessor:
         mask = self.create_mask(height, width)
         masked_image = cv2.bitwise_and(frame, frame, mask=mask)
 
-        results = self.model(masked_image)
-        # Choose the best bounding box by confidence
-        best_bbox = max(results.xyxy[0], key=lambda x: x[4]) if len(results.xyxy[0]) > 0 else None
+        # Different inference call based on whether using PyTorch or TensorRT
+        if self.simulation_mode:
+            # PyTorch version
+            results = self.model(masked_image)
+            # Choose the best bounding box by confidence
+            best_bbox = max(results.xyxy[0], key=lambda x: x[4]) if len(results.xyxy[0]) > 0 else None
+        else:
+            # TensorRT version
+            results, _ = self.model.Inference(masked_image)
+            # Choose the best bounding box by confidence
+            best_bbox = max(results.xyxy[0], key=lambda x: x[4]) if len(results.xyxy[0]) > 0 else None
 
         if best_bbox is not None:
             x_min, y_min, x_max, y_max, conf, cls = best_bbox.tolist()
@@ -216,25 +271,25 @@ class ImageProcessor:
         return current_frame, dev_x, dev_y
 
 
-class ImageSubscriber(Node):
+class CVImagePublisher(Node):
     """
     ROS2 Node that subscribes to an Image topic, processes it via YOLO + tracking, 
     and publishes the tracking offset (Vector3).
     """
 
-    def __init__(self):
-        super().__init__('image_subscriber')
+    def __init__(self, simulation_mode=False):
+        super().__init__('cv_image_publisher')
         
         qos_profile = QoSProfile(
             reliability=QoSReliabilityPolicy.RMW_QOS_POLICY_RELIABILITY_BEST_EFFORT,
             durability=QoSDurabilityPolicy.RMW_QOS_POLICY_DURABILITY_VOLATILE,
             history=QoSHistoryPolicy.RMW_QOS_POLICY_HISTORY_KEEP_LAST,
-            depth=1
+            depth=10
         )
-
+        
         self.camera_subscriber = self.create_subscription(
             Image, 
-            '/camera', 
+            '/camera' if simulation_mode else '/nano_camera', 
             self.image_callback, 
             qos_profile
         )
@@ -257,7 +312,7 @@ class ImageSubscriber(Node):
         re_detect_interval   = self.declare_parameter('re_detect_interval', 30).value
 
         # You may also read the YOLO weight path from a param if desired
-        yolo_weights_path    = self.declare_parameter(
+        yolo_weights_path = self.declare_parameter(
             'yolo_weights_path', 
             'weights/best.pt'
         ).value
@@ -268,7 +323,8 @@ class ImageSubscriber(Node):
             vertical_offset_ratio,
             yolo_weights_path,
             confidence_threshold,
-            re_detect_interval
+            re_detect_interval,
+            simulation_mode
         )
 
     def image_callback(self, data):
@@ -292,10 +348,11 @@ class ImageSubscriber(Node):
 
 def main(args=None):
     rclpy.init(args=args)
-    image_subscriber = ImageSubscriber()
+    image_subscriber = CVImagePublisher(simulation_mode=sim)
     rclpy.spin(image_subscriber)
     image_subscriber.destroy_node()
     rclpy.shutdown()
 
 if __name__ == '__main__':
+    sys
     main()

@@ -1,13 +1,13 @@
 import os
 from glob import glob
-from setuptools import setup
+from setuptools import setup, find_packages
 
 package_name = 'px4_offboard'
 
 setup(
     name=package_name,
     version='0.0.0',
-    packages=[package_name],
+    packages=find_packages(include=[package_name, "yolov5"]),  
     data_files=[
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
@@ -21,13 +21,10 @@ setup(
     zip_safe=True,
     entry_points={
         'console_scripts': [
-                'recon_drone_path = px4_offboard.recon_drone_path:main',
-                'inteceptor_path = px4_offboard.inteceptor_path:main',
                 'visualizer = px4_offboard.visualizer:main',
                 'uav_camera_det = px4_offboard.uav_camera_det:main',
-                'base_station = px4_offboard.base_station:main',
-                'offboard_base_comm = px4_offboard.offboard_base_comm:main',
                 'cv_offboard = px4_offboard.cv_offboard:main',
+                'cv_image_publisher = px4_offboard.uav_track_and_detect:main',
         ],
     },
 )

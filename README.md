@@ -9,6 +9,7 @@
    * Python 3.10
    * Torch for the yolov5 model
 ### Setup Environment Variables in .bashrc
+
 To avoid manually sourcing workspaces every time, add the following lines to your ~/.bashrc file:
 Refer to doc for install
 
@@ -46,7 +47,7 @@ sudo apt install ros-humble-ros-gzgarden
 ## Terminal 1 
 ```
 cd ~/microros_ws
-source install/setup.bash
+source ~/px4_ros_com_ws/install/setup.bash
 ros2 run micro_ros_agent micro_ros_agent udp4 --port 8888 ROS_DOMAIN_ID=0
 ```
 ## Terminal 2 Bridge from home directory 
@@ -74,7 +75,7 @@ cd ~/PX4-Autopilot
 PX4_SYS_AUTOSTART=4001 \
 PX4_GZ_MODEL_POSE="0,0,0,0,0,0" \
 PX4_GZ_WORLD=baylands \
-PX4_SIM_MODEL=x500_mono_cam \
+PX4_SIM_MODEL=x500_depth \
 ./build/px4_sitl_default/bin/px4 -i 2
 ```
 

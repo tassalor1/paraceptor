@@ -30,8 +30,13 @@ def generate_launch_description():
             name='cv_offboard',
             output='screen'
         ),
-
-
+        # cv publisher
+        Node(
+            package='px4_offboard',
+            namespace='cv_image_publisher',
+            executable='cv_image_publisher',
+            name='cv_image_publisher',
+        ),
         # # System Stats Node
         # Node(
         #     package='px4_offboard',  

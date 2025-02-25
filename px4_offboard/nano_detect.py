@@ -10,7 +10,7 @@ class CameraNode(Node):
     def __init__(self):
         super().__init__('camera_node')
         # Publisher for the camera feed
-        self.publisher = self.create_publisher(Image, '/camera_test/images', 10)
+        self.publisher = self.create_publisher(Image, '/nano_camera', 10)
         self.bridge = CvBridge()
 
     def read_camera(self):
