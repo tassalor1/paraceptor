@@ -93,7 +93,7 @@ class ImageProcessor:
             #     'custom', 
             #     path=yolo_weights_path
             # )
-            self.model = torch.hub.load('ultralytics/yolov5', 'yolov5s', pretrained=True)
+            self.model = torch.hub.load("ultralytics/yolov5", "yolov5n")
         else:
             print("Running in hardware mode with TensorRT model")
             library = "yolov5/weights/libmyplugins.so"
@@ -328,6 +328,7 @@ class CVImagePublisher(Node):
         )
 
     def image_callback(self, data):
+        self.get_logger().info(f"Received image: {data.width}x{data.height} encoding: {data.encoding}")
         try:
             current_frame = self.br.imgmsg_to_cv2(data, desired_encoding="bgr8")
             annotated_img, dev_x, dev_y = self.image_processor.process_image(current_frame)
@@ -354,5 +355,4 @@ def main(args=None):
     rclpy.shutdown()
 
 if __name__ == '__main__':
-    sys
     main()

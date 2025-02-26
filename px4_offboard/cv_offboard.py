@@ -10,6 +10,7 @@ from px4_msgs.msg import OffboardControlMode
 from px4_msgs.msg import TrajectorySetpoint
 from px4_msgs.msg import VehicleStatus
 
+import time
 
 class CVOffboardControl(Node):
 
@@ -28,30 +29,40 @@ class CVOffboardControl(Node):
             self.vehicle_status_callback,
             qos_profile)
         
-        self.publisher_offboard_mode = self.create_publisher(OffboardControlMode, f'/{namespace}/fmu/in/offboard_control_mode', qos_profile)
-        self.publisher_trajectory = self.create_publisher(TrajectorySetpoint, f'/{namespace}/fmu/in/trajectory_setpoint', qos_profile)
+        self.publisher_offboard_mode = self.create_publisher(
+            OffboardControlMode, 
+            f'/{namespace}/fmu/in/offboard_control_mode', 
+            qos_profile)
+
+        self.publisher_trajectory = self.create_publisher(
+            TrajectorySetpoint, 
+            f'/{namespace}/fmu/in/trajectory_setpoint', 
+            qos_profile)
+
         timer_period = 0.02  # seconds
         self.timer = self.create_timer(timer_period, self.cmdloop_callback)
         self.dt = timer_period
-        self.declare_parameter('radius', 10.0)
-        self.declare_parameter('omega', 5.0)
-        self.declare_parameter('altitude', 5.0)
+
         self.nav_state = VehicleStatus.NAVIGATION_STATE_MAX
         self.arming_state = VehicleStatus.ARMING_STATE_DISARMED
-        # Note: no parameter callbacks are used to prevent sudden inflight changes of radii and omega 
-        # which would result in large discontinuities in setpoints
-        self.theta = 0.0
-        self.radius = self.get_parameter('radius').value
-        self.omega = self.get_parameter('omega').value
-        self.altitude = self.get_parameter('altitude').value
-        self.setpoint_count = 0
- 
+
     def vehicle_status_callback(self, msg):
-        # TODO: handle NED->ENU transformation
-        print("NAV_STATUS: ", msg.nav_state)
-        print("  - offboard status: ", VehicleStatus.NAVIGATION_STATE_OFFBOARD)
+        self.get_logger().info(f"RECON NAV_STATUS: {msg.nav_state} - offboard status: {VehicleStatus.NAVIGATION_STATE_OFFBOARD}")
         self.nav_state = msg.nav_state
         self.arming_state = msg.arming_state
+    
+    def desired_height(self):
+        height_msg = TrajectorySetpoint()
+        height_msg.timestamp = int(time.time() * 1e6)  # PX4 expects microseconds
+        height_msg.position = [0.0, 0.0, -5.0]  # 5m up (NED frame)
+        height_msg.velocity = [float('nan'), float('nan'), float('nan')]
+        height_msg.acceleration = [float('nan'), float('nan'), float('nan')]
+        height_msg.jerk = [float('nan'), float('nan'), float('nan')]
+        height_msg.yaw = float('nan')  # No yaw control
+        height_msg.yawspeed = float('nan')  # No yaw speed control
+        self.publisher_trajectory.publish(height_msg)
+        self.get_logger().info("desired height published")
+
 
     def cmdloop_callback(self):
         # Publish offboard control mode
@@ -62,22 +73,8 @@ class CVOffboardControl(Node):
         offboard_msg.acceleration = False
         self.publisher_offboard_mode.publish(offboard_msg)
 
-        self.setpoint_count += 1
-
-        # Ensure at least 100 setpoints before switching to offboard
-        if self.setpoint_count < 100:
-            return
-
-        # Check if the drone is armed and in offboard mode
         if self.nav_state == VehicleStatus.NAVIGATION_STATE_OFFBOARD and self.arming_state == VehicleStatus.ARMING_STATE_ARMED:
-            trajectory_msg = TrajectorySetpoint()
-            trajectory_msg.timestamp = int(Clock().now().nanoseconds / 1000)
-            trajectory_msg.position[0] = self.radius * np.cos(self.theta)
-            trajectory_msg.position[1] = self.radius * np.sin(self.theta)
-            trajectory_msg.position[2] = -self.altitude
-            self.publisher_trajectory.publish(trajectory_msg)
-
-            self.theta += self.omega * self.dt
+            self.desired_height()
 
 
 
