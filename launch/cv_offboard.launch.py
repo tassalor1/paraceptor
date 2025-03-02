@@ -6,6 +6,17 @@ from launch_ros.actions import Node
 
 def generate_launch_description():
     return LaunchDescription([
+	# MAVROS Node for USB connection
+        Node(
+            package='mavros',
+            executable='mavros_node',
+            name='mavros',
+            parameters=[
+                {'fcu_url': '/dev/ttyACM0:921600'}, 
+                {'target_system_id': 1},
+                {'target_component_id': 1},
+            ],
+        ),
         # Transform: map -> odom
         Node(
             package='tf2_ros',
@@ -31,23 +42,23 @@ def generate_launch_description():
             output='screen'
         ),
         # cv publisher
+        #Node(
+        #    package='px4_offboard',
+         #   namespace='cv_image_publisher',
+         #   executable='cv_image_publisher',
+         #   name='cv_image_publisher',
+        #),
+        # System Stats Node
         Node(
-            package='px4_offboard',
-            namespace='cv_image_publisher',
-            executable='cv_image_publisher',
-            name='cv_image_publisher',
+            package='px4_offboard',  
+            executable='system_stats_publisher',
+            name='system_stats_publisher',
         ),
-        # # System Stats Node
-        # Node(
-        #     package='px4_offboard',  
-        #     executable='system_stats_publisher',
-        #     name='system_stats_publisher',
-        # ),
 
-        # # ROS 2 MAVLink Node
-        # Node(
-        #     package='px4_offboard',  
-        #     executable='ros2mavlink',
-        #     name='ros2mavlink',
-        # ),
+        # ROS 2 MAVLink Node
+        #Node(
+         #   package='px4_offboard',  
+         #   executable='ros2mavlink',
+          #  name='ros2mavlink',
+        #),
     ])

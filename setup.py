@@ -25,6 +25,8 @@ setup(
                 'uav_camera_det = px4_offboard.uav_camera_det:main',
                 'cv_offboard = px4_offboard.cv_offboard:main',
                 'cv_image_publisher = px4_offboard.uav_track_and_detect:main',
+                'system_stats_publisher = px4_offboard.system_stats_publisher:main',
+                'ros2mavlink = px4_offboard.ros2mavlink:main',
         ],
     },
 )
